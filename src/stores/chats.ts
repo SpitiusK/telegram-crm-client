@@ -1,18 +1,102 @@
 import { create } from 'zustand'
 import { telegramAPI } from '../lib/telegram'
-import type { TelegramDialog, TelegramMessage } from '../types'
+import type { TelegramDialog, TelegramMessage, ForumTopic, SearchResult } from '../types'
+
+const DRAFTS_KEY = 'telegram-crm-drafts'
+const PINNED_KEY = 'telegram-crm-pinned'
+const MUTED_KEY = 'telegram-crm-muted'
+
+function loadStringSet(key: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.filter((v): v is string => typeof v === 'string'))
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return new Set()
+}
+
+function persistStringSet(key: string, s: Set<string>): void {
+  localStorage.setItem(key, JSON.stringify([...s]))
+}
+
+function loadDrafts(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(DRAFTS_KEY)
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, string>
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return {}
+}
+
+function persistDrafts(drafts: Record<string, string>): void {
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts))
+}
+
+interface TypingEntry {
+  userId: string
+  timestamp: number
+}
+
+export type ChatFolder = 'all' | 'users' | 'groups' | 'channels' | 'forums' | 'bots'
 
 interface ChatsState {
   dialogs: TelegramDialog[]
   messages: TelegramMessage[]
   activeChat: string | null
+  activeFolder: ChatFolder
   searchQuery: string
   isLoadingDialogs: boolean
   isLoadingMessages: boolean
+  scrollPositions: Record<string, number>
+  forumTopics: ForumTopic[]
+  activeTopic: number | null
+  isLoadingTopics: boolean
+  replyingTo: TelegramMessage | null
+  editingMessage: TelegramMessage | null
+  drafts: Record<string, string>
+  typingUsers: Record<string, TypingEntry[]>
+  searchResults: SearchResult[]
+  isSearching: boolean
+  hasMoreMessages: boolean
+  isLoadingMoreMessages: boolean
+  pinnedChats: Set<string>
+  mutedChats: Set<string>
+  loadMoreMessages: () => Promise<void>
+  searchMessages: (query: string, chatId?: string) => Promise<void>
+  clearSearch: () => void
+  togglePin: (chatId: string) => void
+  toggleMute: (chatId: string) => void
+  removeDialog: (chatId: string) => void
   loadDialogs: () => Promise<void>
+  setActiveFolder: (folder: ChatFolder) => void
   setActiveChat: (chatId: string) => Promise<void>
+  setActiveTopic: (topicId: number) => Promise<void>
+  clearActiveTopic: () => void
   sendMessage: (text: string) => Promise<void>
+  sendFile: (filePath: string) => Promise<void>
+  sendPhoto: (base64Data: string) => Promise<void>
+  setReplyingTo: (msg: TelegramMessage | null) => void
+  setEditingMessage: (msg: TelegramMessage | null) => void
+  editMessage: (messageId: number, text: string) => Promise<void>
+  deleteMessages: (messageIds: number[]) => Promise<void>
   setSearchQuery: (query: string) => void
+  saveScrollPosition: (chatId: string, position: number) => void
+  saveDraft: (chatId: string, text: string) => void
+  getDraft: (chatId: string) => string
+  clearDraft: (chatId: string) => void
+  addTypingUser: (chatId: string, userId: string) => void
   setupRealtimeUpdates: () => () => void
 }
 
@@ -20,9 +104,93 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   dialogs: [],
   messages: [],
   activeChat: null,
+  activeFolder: 'all',
   searchQuery: '',
   isLoadingDialogs: false,
   isLoadingMessages: false,
+  scrollPositions: {},
+  forumTopics: [],
+  activeTopic: null,
+  isLoadingTopics: false,
+  replyingTo: null,
+  editingMessage: null,
+  drafts: loadDrafts(),
+  typingUsers: {},
+  searchResults: [],
+  hasMoreMessages: true,
+  isLoadingMoreMessages: false,
+  isSearching: false,
+  pinnedChats: loadStringSet(PINNED_KEY),
+  mutedChats: loadStringSet(MUTED_KEY),
+
+  loadMoreMessages: async () => {
+    const { activeChat, messages, hasMoreMessages, isLoadingMoreMessages, isLoadingMessages } = get()
+    if (!activeChat || !hasMoreMessages || isLoadingMoreMessages || isLoadingMessages) return
+    if (messages.length === 0) return
+
+    const oldestMsg = messages[0]
+    if (!oldestMsg) return
+
+    set({ isLoadingMoreMessages: true })
+    try {
+      const olderMessages = await telegramAPI.getMessages(activeChat, 50, oldestMsg.id)
+      set((state) => ({
+        messages: [...olderMessages, ...state.messages],
+        hasMoreMessages: olderMessages.length >= 50,
+        isLoadingMoreMessages: false,
+      }))
+    } catch {
+      set({ isLoadingMoreMessages: false })
+    }
+  },
+
+  searchMessages: async (query: string, chatId?: string) => {
+    set({ isSearching: true, searchResults: [] })
+    try {
+      const results = await telegramAPI.searchMessages(query, chatId, 20)
+      set({ searchResults: results, isSearching: false })
+    } catch {
+      set({ isSearching: false })
+    }
+  },
+
+  clearSearch: () => set({ searchResults: [], isSearching: false }),
+
+  togglePin: (chatId: string) => {
+    set((state) => {
+      const next = new Set(state.pinnedChats)
+      if (next.has(chatId)) {
+        next.delete(chatId)
+      } else {
+        next.add(chatId)
+      }
+      persistStringSet(PINNED_KEY, next)
+      return { pinnedChats: next }
+    })
+  },
+
+  toggleMute: (chatId: string) => {
+    set((state) => {
+      const next = new Set(state.mutedChats)
+      if (next.has(chatId)) {
+        next.delete(chatId)
+      } else {
+        next.add(chatId)
+      }
+      persistStringSet(MUTED_KEY, next)
+      void telegramAPI.setNotificationSettings({ mutedChats: [...next] })
+      return { mutedChats: next }
+    })
+  },
+
+  removeDialog: (chatId: string) => {
+    set((state) => ({
+      dialogs: state.dialogs.filter((d) => d.id !== chatId),
+      ...(state.activeChat === chatId ? { activeChat: null, messages: [] } : {}),
+    }))
+  },
+
+  setActiveFolder: (folder: ChatFolder) => set({ activeFolder: folder }),
 
   loadDialogs: async () => {
     set({ isLoadingDialogs: true })
@@ -35,27 +203,65 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   },
 
   setActiveChat: async (chatId: string) => {
-    set({ activeChat: chatId, isLoadingMessages: true, messages: [] })
+    const dialog = get().dialogs.find((d) => d.id === chatId)
+    if (dialog?.isForum) {
+      // Forum group: load topics instead of messages
+      set({ activeChat: chatId, activeTopic: null, forumTopics: [], messages: [], isLoadingTopics: true, isLoadingMessages: false })
+      try {
+        const topics = await telegramAPI.getForumTopics(chatId)
+        set({ forumTopics: topics, isLoadingTopics: false })
+      } catch {
+        set({ isLoadingTopics: false })
+      }
+    } else {
+      // Regular chat: load messages
+      set({ activeChat: chatId, activeTopic: null, forumTopics: [], isLoadingMessages: true, messages: [], hasMoreMessages: true })
+      try {
+        const messages = await telegramAPI.getMessages(chatId, 50)
+        set({ messages, isLoadingMessages: false, hasMoreMessages: messages.length >= 50 })
+        void telegramAPI.markRead(chatId)
+        set((state) => ({
+          dialogs: state.dialogs.map((d) =>
+            d.id === chatId ? { ...d, unreadCount: 0 } : d
+          ),
+        }))
+      } catch {
+        set({ isLoadingMessages: false })
+      }
+    }
+  },
+
+  setActiveTopic: async (topicId: number) => {
+    const { activeChat } = get()
+    if (!activeChat) return
+    set({ activeTopic: topicId, isLoadingMessages: true, messages: [], hasMoreMessages: true })
     try {
-      const messages = await telegramAPI.getMessages(chatId, 50)
-      set({ messages, isLoadingMessages: false })
-      // Mark as read
-      void telegramAPI.markRead(chatId)
-      // Update unread count in dialog list
-      set((state) => ({
-        dialogs: state.dialogs.map((d) =>
-          d.id === chatId ? { ...d, unreadCount: 0 } : d
-        ),
-      }))
+      const messages = await telegramAPI.getTopicMessages(activeChat, topicId, 50)
+      set({ messages, isLoadingMessages: false, hasMoreMessages: messages.length >= 50 })
     } catch {
       set({ isLoadingMessages: false })
     }
   },
 
+  clearActiveTopic: () => {
+    set({ activeTopic: null, messages: [] })
+  },
+
   sendMessage: async (text: string) => {
-    const { activeChat } = get()
+    const { activeChat, activeTopic, editingMessage, replyingTo } = get()
     if (!activeChat) return
-    const result = await telegramAPI.sendMessage(activeChat, text)
+
+    // Edit mode: update existing message instead of sending new
+    if (editingMessage) {
+      await get().editMessage(editingMessage.id, text)
+      return
+    }
+
+    const replyToId = replyingTo?.id
+    const result = activeTopic !== null
+      ? await telegramAPI.sendTopicMessage(activeChat, activeTopic, text)
+      : await telegramAPI.sendMessage(activeChat, text, replyToId)
+
     // Optimistically add to messages
     const newMsg: TelegramMessage = {
       id: result.id,
@@ -65,13 +271,124 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       out: true,
       senderName: 'You',
       senderId: '',
+      ...(replyingTo ? {
+        replyToId: replyingTo.id,
+        replyToMessage: { id: replyingTo.id, text: replyingTo.text, senderName: replyingTo.senderName },
+      } : {}),
     }
-    set((state) => ({ messages: [...state.messages, newMsg] }))
+    set((state) => ({ messages: [...state.messages, newMsg], replyingTo: null }))
+  },
+
+  sendFile: async (filePath: string) => {
+    const { activeChat, replyingTo } = get()
+    if (!activeChat) return
+    const replyToId = replyingTo?.id
+    await telegramAPI.sendFile(activeChat, filePath, undefined, replyToId)
+    set({ replyingTo: null })
+  },
+
+  sendPhoto: async (base64Data: string) => {
+    const { activeChat, replyingTo } = get()
+    if (!activeChat) return
+    const replyToId = replyingTo?.id
+    await telegramAPI.sendPhoto(activeChat, base64Data, undefined, replyToId)
+    set({ replyingTo: null })
+  },
+
+  setReplyingTo: (msg: TelegramMessage | null) => set({ replyingTo: msg, editingMessage: null }),
+  setEditingMessage: (msg: TelegramMessage | null) => set({ editingMessage: msg, replyingTo: null }),
+
+  editMessage: async (messageId: number, text: string) => {
+    const { activeChat } = get()
+    if (!activeChat) return
+    await telegramAPI.editMessage(activeChat, messageId, text)
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === messageId ? { ...m, text, isEdited: true } : m
+      ),
+      editingMessage: null,
+    }))
+  },
+
+  deleteMessages: async (messageIds: number[]) => {
+    const { activeChat } = get()
+    if (!activeChat) return
+    await telegramAPI.deleteMessages(activeChat, messageIds)
+    set((state) => ({
+      messages: state.messages.filter((m) => !messageIds.includes(m.id)),
+    }))
   },
 
   setSearchQuery: (query: string) => set({ searchQuery: query }),
 
+  saveScrollPosition: (chatId: string, position: number) =>
+    set((state) => ({
+      scrollPositions: { ...state.scrollPositions, [chatId]: position },
+    })),
+
+  saveDraft: (chatId: string, text: string) => {
+    set((state) => {
+      const drafts = { ...state.drafts }
+      if (text.trim()) {
+        drafts[chatId] = text
+      } else {
+        delete drafts[chatId]
+      }
+      persistDrafts(drafts)
+      return { drafts }
+    })
+  },
+
+  getDraft: (chatId: string) => {
+    return get().drafts[chatId] ?? ''
+  },
+
+  clearDraft: (chatId: string) => {
+    set((state) => {
+      const drafts = { ...state.drafts }
+      delete drafts[chatId]
+      persistDrafts(drafts)
+      return { drafts }
+    })
+  },
+
+  addTypingUser: (chatId: string, userId: string) => {
+    set((state) => {
+      const existing = state.typingUsers[chatId] ?? []
+      const filtered = existing.filter((e) => e.userId !== userId)
+      return {
+        typingUsers: {
+          ...state.typingUsers,
+          [chatId]: [...filtered, { userId, timestamp: Date.now() }],
+        },
+      }
+    })
+    // Auto-expire after 5 seconds
+    setTimeout(() => {
+      set((state) => {
+        const entries = state.typingUsers[chatId]
+        if (!entries) return state
+        const now = Date.now()
+        const filtered = entries.filter((e) => now - e.timestamp < 5000)
+        return {
+          typingUsers: {
+            ...state.typingUsers,
+            [chatId]: filtered,
+          },
+        }
+      })
+    }, 5500)
+  },
+
   setupRealtimeUpdates: () => {
+    // Sync muted chats to main process on startup
+    void telegramAPI.setNotificationSettings({ mutedChats: [...get().mutedChats] })
+
+    // Listen for notification clicks — navigate to the chat
+    const cleanupNotification = telegramAPI.onNotificationClick((chatId: string) => {
+      void get().setActiveChat(chatId)
+    })
+
     const cleanup = telegramAPI.onUpdate((event, data) => {
       if (event === 'newMessage') {
         const msg = data as TelegramMessage
@@ -102,7 +419,15 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
           return { dialogs: updated }
         })
       }
+
+      if (event === 'typing') {
+        const { chatId, userId } = data as { chatId: string; userId: string }
+        get().addTypingUser(chatId, userId)
+      }
     })
-    return cleanup
+    return () => {
+      cleanup()
+      cleanupNotification()
+    }
   },
 }))

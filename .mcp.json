@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ],
+      "env": {}
+    },
+    "typescript": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/claude-code-mcp-typescript-lsp@latest",
+        "--tsconfig",
+        "./tsconfig.json"
+      ],
+      "env": {}
+    }
+  }
+}

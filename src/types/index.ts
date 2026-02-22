@@ -9,8 +9,43 @@ export interface TelegramDialog {
   isSavedMessages: boolean
   isGroup: boolean
   isChannel: boolean
+  isForum?: boolean
   username?: string
   phone?: string
+}
+
+export interface ForumTopic {
+  id: number
+  title: string
+  iconColor: number
+  iconEmojiId?: string
+  unreadCount: number
+  lastMessage?: string
+  lastMessageDate?: number
+  closed?: boolean
+  pinned?: boolean
+  hidden?: boolean
+}
+
+export interface MessageEntity {
+  type: 'bold' | 'italic' | 'code' | 'pre' | 'underline' | 'strike' | 'spoiler' | 'url' | 'textUrl' | 'mention' | 'hashtag'
+  offset: number
+  length: number
+  url?: string
+}
+
+export interface ReplyPreview {
+  id: number
+  text: string
+  senderName: string
+}
+
+export interface LinkPreview {
+  url: string
+  title?: string
+  description?: string
+  siteName?: string
+  photo?: string
 }
 
 export interface TelegramMessage {
@@ -23,13 +58,23 @@ export interface TelegramMessage {
   senderId: string
   replyToId?: number
   media?: MessageMedia
+  entities?: MessageEntity[]
+  replyToMessage?: ReplyPreview
+  forwardedFrom?: string
+  isEdited?: boolean
+  linkPreview?: LinkPreview
 }
 
 export interface MessageMedia {
-  type: 'photo' | 'document' | 'video' | 'voice' | 'sticker'
+  type: 'photo' | 'document' | 'video' | 'voice' | 'sticker' | 'gif' | 'videoNote'
   url?: string
   fileName?: string
   size?: number
+  duration?: number
+  width?: number
+  height?: number
+  mimeType?: string
+  waveform?: number[]
 }
 
 export interface TelegramUser {
@@ -63,6 +108,17 @@ export interface SendMessageResult {
   date: number
 }
 
+export interface SearchResult {
+  id: number
+  chatId: string
+  chatTitle?: string
+  text: string
+  date: number
+  out: boolean
+  senderName: string
+  senderId: string
+}
+
 export interface BitrixDeal {
   ID: string
   TITLE: string
@@ -93,6 +149,15 @@ export interface AIMessageSuggestion {
   confidence: number
 }
 
+export interface TelegramAccount {
+  id: string
+  firstName: string
+  lastName: string
+  username: string
+  phone: string
+  avatar?: string
+}
+
 export interface AppTheme {
   mode: 'dark' | 'light'
 }
@@ -109,10 +174,27 @@ export interface ElectronAPI {
     getMe: () => Promise<TelegramUser | null>
     getUserInfo: (userId: string) => Promise<UserProfile | null>
     getDialogs: (limit?: number) => Promise<TelegramDialog[]>
-    getMessages: (chatId: string, limit?: number) => Promise<TelegramMessage[]>
-    sendMessage: (chatId: string, text: string) => Promise<SendMessageResult>
+    getMessages: (chatId: string, limit?: number, offsetId?: number) => Promise<TelegramMessage[]>
+    getForumTopics: (chatId: string) => Promise<ForumTopic[]>
+    getTopicMessages: (chatId: string, topicId: number, limit?: number) => Promise<TelegramMessage[]>
+    sendMessage: (chatId: string, text: string, replyTo?: number) => Promise<SendMessageResult>
+    sendTopicMessage: (chatId: string, topicId: number, text: string) => Promise<SendMessageResult>
+    pickFile: (options?: { mediaOnly?: boolean }) => Promise<string | null>
+    sendFile: (chatId: string, filePath: string, caption?: string, replyTo?: number) => Promise<SendMessageResult>
+    sendPhoto: (chatId: string, base64Data: string, caption?: string, replyTo?: number) => Promise<SendMessageResult>
+    setTyping: (chatId: string) => Promise<void>
+    searchMessages: (query: string, chatId?: string, limit?: number) => Promise<SearchResult[]>
+    editMessage: (chatId: string, messageId: number, text: string) => Promise<void>
+    deleteMessages: (chatId: string, messageIds: number[], revoke?: boolean) => Promise<void>
     markRead: (chatId: string) => Promise<void>
+    setNotificationSettings: (settings: { mutedChats: string[] }) => Promise<void>
     logout: () => Promise<void>
+    getAccounts: () => Promise<TelegramAccount[]>
+    switchAccount: (accountId: string) => Promise<boolean>
+    addAccount: () => Promise<void>
+    removeAccount: (accountId: string) => Promise<void>
+    cancelAddAccount: () => Promise<void>
+    onNotificationClick: (callback: (chatId: string) => void) => () => void
     onUpdate: (callback: (event: string, data: unknown) => void) => () => void
   }
   crm: {

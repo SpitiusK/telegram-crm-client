@@ -1,4 +1,4 @@
-import type { TelegramDialog, TelegramMessage, TelegramUser, UserProfile, VerifyCodeResult, SendMessageResult } from '../types'
+import type { TelegramDialog, TelegramMessage, TelegramUser, TelegramAccount, UserProfile, VerifyCodeResult, SendMessageResult, ForumTopic, SearchResult } from '../types'
 
 const api = () => window.electronAPI.telegram
 
@@ -12,10 +12,27 @@ export const telegramAPI = {
   isAuthorized: () => api().isAuthorized(),
   getMe: (): Promise<TelegramUser | null> => api().getMe(),
   getDialogs: (limit?: number): Promise<TelegramDialog[]> => api().getDialogs(limit),
-  getMessages: (chatId: string, limit?: number): Promise<TelegramMessage[]> => api().getMessages(chatId, limit),
-  sendMessage: (chatId: string, text: string): Promise<SendMessageResult> => api().sendMessage(chatId, text),
+  getMessages: (chatId: string, limit?: number, offsetId?: number): Promise<TelegramMessage[]> => api().getMessages(chatId, limit, offsetId),
+  sendMessage: (chatId: string, text: string, replyTo?: number): Promise<SendMessageResult> => api().sendMessage(chatId, text, replyTo),
+  pickFile: (options?: { mediaOnly?: boolean }): Promise<string | null> => api().pickFile(options),
+  sendFile: (chatId: string, filePath: string, caption?: string, replyTo?: number): Promise<SendMessageResult> => api().sendFile(chatId, filePath, caption, replyTo),
+  sendPhoto: (chatId: string, base64Data: string, caption?: string, replyTo?: number): Promise<SendMessageResult> => api().sendPhoto(chatId, base64Data, caption, replyTo),
+  searchMessages: (query: string, chatId?: string, limit?: number): Promise<SearchResult[]> => api().searchMessages(query, chatId, limit),
+  setTyping: (chatId: string): Promise<void> => api().setTyping(chatId),
+  editMessage: (chatId: string, messageId: number, text: string): Promise<void> => api().editMessage(chatId, messageId, text),
+  deleteMessages: (chatId: string, messageIds: number[], revoke?: boolean): Promise<void> => api().deleteMessages(chatId, messageIds, revoke),
   getUserInfo: (userId: string): Promise<UserProfile | null> => api().getUserInfo(userId),
   markRead: (chatId: string) => api().markRead(chatId),
+  getForumTopics: (chatId: string): Promise<ForumTopic[]> => api().getForumTopics(chatId),
+  getTopicMessages: (chatId: string, topicId: number, limit?: number): Promise<TelegramMessage[]> => api().getTopicMessages(chatId, topicId, limit),
+  sendTopicMessage: (chatId: string, topicId: number, text: string): Promise<SendMessageResult> => api().sendTopicMessage(chatId, topicId, text),
+  setNotificationSettings: (settings: { mutedChats: string[] }): Promise<void> => api().setNotificationSettings(settings),
   logout: () => api().logout(),
+  getAccounts: (): Promise<TelegramAccount[]> => api().getAccounts(),
+  switchAccount: (accountId: string): Promise<boolean> => api().switchAccount(accountId),
+  addAccount: (): Promise<void> => api().addAccount(),
+  removeAccount: (accountId: string): Promise<void> => api().removeAccount(accountId),
+  cancelAddAccount: (): Promise<void> => api().cancelAddAccount(),
+  onNotificationClick: (cb: (chatId: string) => void) => api().onNotificationClick(cb),
   onUpdate: (cb: (event: string, data: unknown) => void) => api().onUpdate(cb),
 }

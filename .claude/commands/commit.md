@@ -1,0 +1,1 @@
+Stage all changes, generate a conventional commit message based on the diff, and commit. Format: `type(scope): description`. Types: feat, fix, refactor, docs, style, test, chore. Run typecheck + lint before committing. Show the commit message for approval before executing.

@@ -2,9 +2,12 @@ import { useEffect } from 'react'
 import { useAuthStore } from './stores/auth'
 import { AuthScreen } from './components/auth/auth-screen'
 import { MainLayout } from './components/layout/main-layout'
+import { useKeyboardShortcuts } from './hooks/use-keyboard-shortcuts'
 
 export function App() {
   const { isAuthorized, isLoading, checkAuth } = useAuthStore()
+
+  useKeyboardShortcuts()
 
   useEffect(() => {
     void checkAuth()
