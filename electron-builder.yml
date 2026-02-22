@@ -1,0 +1,21 @@
+appId: com.telegram-crm.client
+productName: Telegram CRM Client
+directories:
+  buildResources: build
+  output: release
+files:
+  - dist-electron
+  - dist
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-setup.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+asar: true
+asarUnpack:
+  - "**/*.node"
