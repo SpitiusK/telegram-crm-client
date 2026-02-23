@@ -4,6 +4,7 @@ import { setupTelegramIPC, saveAllSessions } from './ipc/telegram'
 import { setupCrmIPC } from './ipc/crm'
 import { setupClaudeIPC } from './ipc/claude'
 import { setupDatabaseIPC } from './ipc/database'
+import { setupRagIPC } from './ipc/rag'
 import { AppDatabase } from './database/index'
 
 // Enable CDP remote debugging in dev mode so Playwright MCP can connect to Electron
@@ -63,6 +64,7 @@ function registerIPC(): void {
   setupCrmIPC(ipcMain)
   setupClaudeIPC(ipcMain)
   setupDatabaseIPC(ipcMain)
+  setupRagIPC(ipcMain)
 }
 
 app.whenReady().then(() => {

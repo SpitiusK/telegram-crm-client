@@ -9,6 +9,7 @@ import type {
   SessionStateRow,
 } from '../domain/types'
 import { up as migration001Up } from './migrations/001_initial'
+import { up as migration002Up } from './migrations/002_rag_tracking'
 
 let instance: AppDatabase | null = null
 
@@ -43,6 +44,7 @@ export class AppDatabase {
 
     const migrations = [
       { name: '001_initial', up: migration001Up },
+      { name: '002_rag_tracking', up: migration002Up },
     ]
 
     for (const migration of migrations) {

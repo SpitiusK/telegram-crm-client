@@ -197,6 +197,39 @@ export interface AppTheme {
   mode: 'dark' | 'light'
 }
 
+// ─── RAG Types ───
+
+export interface RAGSearchResult {
+  text: string
+  score: number
+  chatId: string
+  chatTitle: string
+  startDate: number
+  endDate: number
+  messageIds: number[]
+}
+
+export interface RAGStatus {
+  qdrant: boolean
+  ollama: boolean
+  model: boolean
+}
+
+export interface IndexingProgress {
+  isIndexing: boolean
+  progress: number
+  currentChat: string
+  totalChats: number
+  indexedChats: number
+  error?: string
+}
+
+export interface RAGIndexStats {
+  totalChats: number
+  totalChunks: number
+  lastIndexedAt: string | null
+}
+
 export interface ElectronAPI {
   telegram: {
     // Auth methods (no accountId)
@@ -257,6 +290,14 @@ export interface ElectronAPI {
     getCachedMessages: (chatId: string) => Promise<TelegramMessage[]>
     saveSession: (key: string, value: string) => Promise<void>
     getSession: (key: string) => Promise<string | null>
+  }
+  rag: {
+    getStatus: () => Promise<RAGStatus>
+    startIndexing: (accountId: string) => Promise<void>
+    stopIndexing: (accountId: string) => Promise<void>
+    search: (query: string, accountId: string, filters?: { chatId?: string; dateFrom?: number; dateTo?: number; limit?: number }) => Promise<RAGSearchResult[]>
+    reindex: (accountId: string, chatId?: string) => Promise<void>
+    getIndexStats: (accountId: string) => Promise<RAGIndexStats>
   }
 }
 

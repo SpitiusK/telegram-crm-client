@@ -7,6 +7,8 @@ import { CustomFile } from 'telegram/client/uploads'
 import QRCode from 'qrcode'
 import { computeCheck } from 'telegram/Password'
 import { getDatabase } from '../database/index'
+import { getQdrantClient, getOllamaClient } from './rag'
+import { RAGIndexer } from '../rag/indexer'
 
 const API_ID = 2040
 const API_HASH = 'b18441a1ff607e10a989891a5462e627'
@@ -80,7 +82,7 @@ function getActiveClient(): TelegramClient {
 }
 
 /** Resolve client for a specific account, falling back to active account for backward compat. */
-function getClientForAccount(accountId?: string): TelegramClient {
+export function getClientForAccount(accountId?: string): TelegramClient {
   if (accountId) {
     const entry = accounts.get(accountId)
     if (!entry) {
@@ -289,6 +291,49 @@ function setupEventHandlers(accountId: string, tc: TelegramClient): void {
           sendToRenderer('notificationClick', { accountId, chatId })
         })
         notification.show()
+      }
+    }
+
+    // Incremental RAG indexing for 1:1 user chats
+    if (chatId && msg.message) {
+      try {
+        const db = getDatabase()
+        const tracked = db.queryOne<{ chat_id: string }>(
+          'SELECT chat_id FROM rag_indexed_chats WHERE account_id = ? AND chat_id = ?',
+          accountId,
+          chatId,
+        )
+        // Only index if chat was already indexed (initial indexing covers new chats)
+        if (tracked) {
+          const qdrant = getQdrantClient()
+          const ollama = getOllamaClient()
+          const indexer = new RAGIndexer(qdrant, ollama)
+
+          let senderName = msg.out ? 'Operator' : 'Unknown'
+          try {
+            if (msg.senderId) {
+              const sender = await tc.getEntity(msg.senderId)
+              if (sender instanceof Api.User) {
+                senderName = [sender.firstName, sender.lastName].filter(Boolean).join(' ')
+              }
+            }
+          } catch {
+            // ignore
+          }
+
+          void indexer.indexNewMessages(accountId, chatId, [{
+            id: msg.id,
+            chatId,
+            accountId,
+            text: sanitizeText(msg.message ?? ''),
+            date: msg.date ?? 0,
+            out: msg.out ?? false,
+            senderName,
+            senderId: msg.senderId?.toString() ?? '',
+          }], '')
+        }
+      } catch {
+        // RAG services may be unavailable — silently skip
       }
     }
   }, new NewMessage({}))

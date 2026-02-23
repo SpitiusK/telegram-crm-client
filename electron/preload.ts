@@ -79,6 +79,15 @@ const api = {
     saveSession: (key: string, value: string) => ipcRenderer.invoke('db:saveSession', key, value),
     getSession: (key: string) => ipcRenderer.invoke('db:getSession', key),
   },
+  rag: {
+    getStatus: () => ipcRenderer.invoke('rag:getStatus'),
+    startIndexing: (accountId: string) => ipcRenderer.invoke('rag:startIndexing', accountId),
+    stopIndexing: (accountId: string) => ipcRenderer.invoke('rag:stopIndexing', accountId),
+    search: (query: string, accountId: string, filters?: { chatId?: string; dateFrom?: number; dateTo?: number; limit?: number }) =>
+      ipcRenderer.invoke('rag:search', query, accountId, filters),
+    reindex: (accountId: string, chatId?: string) => ipcRenderer.invoke('rag:reindex', accountId, chatId),
+    getIndexStats: (accountId: string) => ipcRenderer.invoke('rag:getIndexStats', accountId),
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

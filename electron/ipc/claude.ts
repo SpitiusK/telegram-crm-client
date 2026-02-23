@@ -1,5 +1,7 @@
 import { IpcMain } from 'electron'
 import Anthropic from '@anthropic-ai/sdk'
+import { getContextForAI } from '../rag/search'
+import { getQdrantClient, getOllamaClient } from './rag'
 
 let anthropic: Anthropic | null = null
 
@@ -28,7 +30,7 @@ interface DealInfo {
 export function setupClaudeIPC(ipcMain: IpcMain): void {
   ipcMain.handle(
     'claude:generateMessage',
-    async (_event, context: string, history: MessageHistory[], dealInfo?: DealInfo) => {
+    async (_event, context: string, history: MessageHistory[], dealInfo?: DealInfo, accountId?: string, chatId?: string) => {
       const client = getClient()
 
       const chatHistory = history
@@ -40,8 +42,20 @@ export function setupClaudeIPC(ipcMain: IpcMain): void {
         ? `\nDeal: ${dealInfo.TITLE ?? 'N/A'}, Stage: ${dealInfo.STAGE_ID ?? 'N/A'}, Amount: ${dealInfo.OPPORTUNITY ?? 'N/A'}\nNotes: ${dealInfo.COMMENTS ?? 'none'}`
         : ''
 
+      // Retrieve RAG context from past conversations
+      let ragContext = ''
+      if (accountId && chatId) {
+        try {
+          const qdrant = getQdrantClient()
+          const ollama = getOllamaClient()
+          ragContext = await getContextForAI(accountId, chatId, history.slice(-5), qdrant, ollama)
+        } catch {
+          // RAG services may be unavailable — continue without context
+        }
+      }
+
       const systemPrompt = `You are an AI assistant helping a CRM operator compose Telegram messages to clients.
-Context: ${context}${dealContext}
+Context: ${context}${dealContext}${ragContext}
 
 Generate 3 message suggestions with different tones.
 Respond in JSON format: [{"text": "...", "tone": "professional|friendly|urgent", "confidence": 0.0-1.0}]`
