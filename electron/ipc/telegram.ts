@@ -770,7 +770,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
 
   ipcMain.handle('telegram:getDialogs', async (_event, accountId?: string, limit = 50) => {
     const tc = getClientForAccount(accountId)
-    const dialogs = await tc.getDialogs({ limit })
+    const dialogs = await tc.getDialogs({ folder: 0, limit })
 
     // Get current user for Saved Messages detection
     const me = await tc.getMe()
