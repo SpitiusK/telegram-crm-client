@@ -59,7 +59,11 @@ function FolderTab({ label, isActive, onClick }: { label: string; isActive: bool
   )
 }
 
-export function ChatSidebar() {
+interface ChatSidebarProps {
+  width?: number
+}
+
+export function ChatSidebar({ width }: ChatSidebarProps) {
   const {
     dialogs, isLoadingDialogs, activeFolder, setActiveFolder, pinnedChats,
     searchResults, isSearching, searchMessages, clearSearch, setActiveChat,
@@ -150,7 +154,10 @@ export function ChatSidebar() {
   const showSearchResults = hasSearchQuery && (searchResults.length > 0 || isSearching)
 
   return (
-    <div className="w-[280px] min-w-[280px] bg-popover flex flex-col border-r border-border">
+    <div
+      style={width ? { width, minWidth: width } : undefined}
+      className={cn('bg-popover flex flex-col border-r border-border', !width && 'w-[280px] min-w-[280px]')}
+    >
       <AccountSwitcher />
 
       {/* Search */}

@@ -55,7 +55,7 @@ export function AccountColumn({
 }: AccountColumnProps) {
   const [activeFolder, setActiveFolder] = useState<ChatFolder>('all')
 
-  const { getAccountState, pinnedChats, isLoadingDialogs } = useChatsStore()
+  const { getAccountState, pinnedChats, isLoadingDialogs, userFolders } = useChatsStore()
   const accountState = getAccountState(accountId)
   const dialogs = accountState.dialogs
 
@@ -69,7 +69,14 @@ export function AccountColumn({
   const filtered = useMemo(() => {
     let result = dialogs
 
-    if (activeFolder !== 'all') {
+    if (activeFolder.startsWith('folder:')) {
+      const folderId = Number(activeFolder.slice(7))
+      const folder = userFolders.find((f) => f.id === folderId)
+      if (folder) {
+        const peerSet = new Set(folder.includePeers)
+        result = result.filter((d) => peerSet.has(d.id))
+      }
+    } else if (activeFolder !== 'all') {
       result = result.filter((d) => matchesFolder(d, activeFolder))
     }
 
@@ -82,7 +89,7 @@ export function AccountColumn({
     })
 
     return result
-  }, [dialogs, activeFolder, pinnedChats])
+  }, [dialogs, activeFolder, pinnedChats, userFolders])
 
   // Collapsed: thin strip with avatar initial + unread count
   if (isCollapsed) {
@@ -160,6 +167,28 @@ export function AccountColumn({
             )}
           </Button>
         ))}
+        {userFolders.map((folder) => {
+          const key: ChatFolder = `folder:${folder.id}`
+          const label = folder.emoji ? `${folder.emoji} ${folder.title}` : folder.title
+          return (
+            <Button
+              key={key}
+              variant="ghost"
+              onClick={() => setActiveFolder(key)}
+              className={cn(
+                'flex-shrink-0 px-3 py-2 text-xs font-medium h-auto rounded-none relative',
+                activeFolder === key
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {label}
+              {activeFolder === key && (
+                <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />
+              )}
+            </Button>
+          )
+        })}
       </div>
 
       {/* Dialog list */}

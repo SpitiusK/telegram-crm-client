@@ -11,12 +11,15 @@ import { CrmPanel } from '../crm/crm-panel'
 import { PipelineBoard } from '../crm/pipeline-board'
 import { ActivityLog } from '../crm/activity-log'
 import { SettingsView } from '../settings/settings-view'
+import { ResizeHandle } from '../ui/resize-handle'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 type LayoutMode = 'single' | 'columns'
 
 const LAYOUT_MODE_KEY = 'telegram-crm-layout-mode'
+const SIDEBAR_WIDTH_KEY = 'telegram-crm-sidebar-width'
+const DEFAULT_SIDEBAR_WIDTH = 280
 
 function loadLayoutMode(): LayoutMode {
   const stored = localStorage.getItem(LAYOUT_MODE_KEY)
@@ -24,11 +27,26 @@ function loadLayoutMode(): LayoutMode {
   return 'single'
 }
 
+function loadSidebarWidth(): number {
+  const stored = localStorage.getItem(SIDEBAR_WIDTH_KEY)
+  if (stored) {
+    const n = Number(stored)
+    if (n >= 200 && n <= 500) return n
+  }
+  return DEFAULT_SIDEBAR_WIDTH
+}
+
 export function MainLayout() {
   const { loadDialogs, loadAllAccountDialogs, loadUserFolders, setupRealtimeUpdates } = useChatsStore()
   const { view, setView, crmPanelOpen, showSettings, setShowSettings } = useUIStore()
   const { currentUser, accounts } = useAuthStore()
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(loadLayoutMode)
+  const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth)
+
+  const handleSidebarResize = useCallback((width: number) => {
+    setSidebarWidth(width)
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width))
+  }, [])
 
   const toggleLayoutMode = useCallback(() => {
     setLayoutMode((prev) => {
@@ -139,7 +157,14 @@ export function MainLayout() {
         <>
           {view === 'chats' && (
             <div className="flex flex-1 overflow-hidden">
-              {showColumns ? <MultiAccountColumns /> : <ChatSidebar />}
+              {showColumns ? (
+                <MultiAccountColumns />
+              ) : (
+                <>
+                  <ChatSidebar width={sidebarWidth} />
+                  <ResizeHandle onResize={handleSidebarResize} />
+                </>
+              )}
               <ChatView />
               {crmPanelOpen && <CrmPanel />}
             </div>

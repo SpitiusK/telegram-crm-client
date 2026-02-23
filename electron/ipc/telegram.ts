@@ -693,8 +693,10 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     const filters = (result as unknown as { filters: unknown[] }).filters ?? ((result as unknown) as unknown[])
     return (filters as unknown[])
       .filter((f): f is RawDialogFilter => {
-        // Only return user-created filters (DialogFilter), skip DialogFilterDefault and system filters
-        return f instanceof Api.DialogFilter && 'title' in f
+        // Duck-type check: user-created filters have id, title, and includePeers
+        // This handles both Api.DialogFilter and Api.DialogFilterChatlist (shared folders)
+        const obj = f as Record<string, unknown>
+        return typeof obj.id === 'number' && typeof obj.title === 'string' && 'includePeers' in obj
       })
       .map((f) => ({
         id: f.id,
