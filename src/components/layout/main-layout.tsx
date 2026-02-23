@@ -21,7 +21,7 @@ function loadLayoutMode(): LayoutMode {
 }
 
 export function MainLayout() {
-  const { loadDialogs, loadUserFolders, setupRealtimeUpdates } = useChatsStore()
+  const { loadDialogs, loadAllAccountDialogs, loadUserFolders, setupRealtimeUpdates } = useChatsStore()
   const { view, setView, crmPanelOpen, showSettings, setShowSettings } = useUIStore()
   const { currentUser, accounts } = useAuthStore()
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(loadLayoutMode)
@@ -37,11 +37,15 @@ export function MainLayout() {
   const showColumns = layoutMode === 'columns' && accounts.length > 1
 
   useEffect(() => {
-    void loadDialogs()
+    if (accounts.length > 1) {
+      void loadAllAccountDialogs()
+    } else {
+      void loadDialogs()
+    }
     void loadUserFolders()
     const cleanup = setupRealtimeUpdates()
     return cleanup
-  }, [loadDialogs, loadUserFolders, setupRealtimeUpdates])
+  }, [accounts.length, loadDialogs, loadAllAccountDialogs, loadUserFolders, setupRealtimeUpdates])
 
   return (
     <div className="flex flex-col h-screen bg-telegram-bg overflow-hidden">

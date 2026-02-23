@@ -96,6 +96,7 @@ interface ChatsState {
   toggleMute: (chatId: string) => void
   removeDialog: (chatId: string) => void
   loadDialogs: () => Promise<void>
+  loadAllAccountDialogs: () => Promise<void>
   loadUserFolders: () => Promise<void>
   loadArchivedDialogs: () => Promise<void>
   setActiveFolder: (folder: ChatFolder) => void
@@ -246,10 +247,46 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       const accountId = useAuthStore.getState().activeAccountId
       const dialogs = await telegramAPI.getDialogs(100)
       const tagged = dialogs.map((d) => ({ ...d, accountId }))
-      set({ dialogs: tagged, isLoadingDialogs: false })
+      set((state) => ({
+        dialogs: tagged,
+        isLoadingDialogs: false,
+        accountStates: {
+          ...state.accountStates,
+          [accountId]: { ...state.getAccountState(accountId), dialogs: tagged },
+        },
+      }))
     } catch {
       set({ isLoadingDialogs: false })
     }
+  },
+
+  loadAllAccountDialogs: async () => {
+    const accounts = useAuthStore.getState().accounts
+    const activeAccountId = useAuthStore.getState().activeAccountId
+    const results = await Promise.all(
+      accounts.map(async (acc) => {
+        try {
+          const dialogs = await telegramAPI.getDialogs(100, acc.id)
+          return { accountId: acc.id, dialogs: dialogs.map((d) => ({ ...d, accountId: acc.id })) }
+        } catch {
+          return { accountId: acc.id, dialogs: [] as TelegramDialog[] }
+        }
+      })
+    )
+    set((state) => {
+      const nextAccountStates = { ...state.accountStates }
+      let activeDialogs: TelegramDialog[] = state.dialogs
+      for (const { accountId, dialogs } of results) {
+        nextAccountStates[accountId] = {
+          ...(state.accountStates[accountId] ?? emptyAccountState()),
+          dialogs,
+        }
+        if (accountId === activeAccountId) {
+          activeDialogs = dialogs
+        }
+      }
+      return { accountStates: nextAccountStates, dialogs: activeDialogs }
+    })
   },
 
   loadUserFolders: async () => {
@@ -477,20 +514,37 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
 
         // Update dialog list: move chat to top, update preview
         set((state) => {
-          const updated = state.dialogs.map((d) => {
-            if (d.id === msg.chatId) {
-              return {
-                ...d,
-                lastMessage: msg.text,
-                lastMessageDate: msg.date,
-                unreadCount: msg.chatId === activeChat?.chatId ? 0 : d.unreadCount + 1,
+          const updateDialogList = (dialogs: TelegramDialog[]) => {
+            const updated = dialogs.map((d) => {
+              if (d.id === msg.chatId) {
+                return {
+                  ...d,
+                  lastMessage: msg.text,
+                  lastMessageDate: msg.date,
+                  unreadCount: msg.chatId === activeChat?.chatId ? 0 : d.unreadCount + 1,
+                }
               }
+              return d
+            })
+            updated.sort((a, b) => b.lastMessageDate - a.lastMessageDate)
+            return updated
+          }
+
+          const nextDialogs = updateDialogList(state.dialogs)
+
+          // Also update accountStates if the message has an accountId
+          const msgAccountId = msg.accountId
+          if (msgAccountId && state.accountStates[msgAccountId]) {
+            const acctState = state.accountStates[msgAccountId]
+            return {
+              dialogs: nextDialogs,
+              accountStates: {
+                ...state.accountStates,
+                [msgAccountId]: { ...acctState, dialogs: updateDialogList(acctState.dialogs) },
+              },
             }
-            return d
-          })
-          // Sort: move updated chat to top
-          updated.sort((a, b) => b.lastMessageDate - a.lastMessageDate)
-          return { dialogs: updated }
+          }
+          return { dialogs: nextDialogs }
         })
       }
 
