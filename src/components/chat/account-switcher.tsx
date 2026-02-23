@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { ACCOUNT_COLORS, ACCOUNT_RING_COLORS } from '@/lib/constants'
 import { useAuthStore } from '../../stores/auth'
 import { useChatsStore } from '../../stores/chats'
 import type { TelegramAccount } from '../../types'
@@ -9,13 +10,17 @@ import type { TelegramAccount } from '../../types'
 function AccountAvatar({
   account,
   isActive,
+  colorIndex,
   onClick,
 }: {
   account: TelegramAccount
   isActive: boolean
+  colorIndex: number
   onClick: () => void
 }) {
   const initial = account.firstName[0] ?? '?'
+  const ringColor = ACCOUNT_RING_COLORS[colorIndex % ACCOUNT_RING_COLORS.length]
+  const bgColor = ACCOUNT_COLORS[colorIndex % ACCOUNT_COLORS.length]
   return (
     <button
       onClick={onClick}
@@ -24,13 +29,13 @@ function AccountAvatar({
       className={cn(
         'flex-shrink-0 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         isActive
-          ? 'ring-2 ring-primary ring-offset-1 ring-offset-popover'
+          ? `ring-2 ${ringColor} ring-offset-1 ring-offset-popover`
           : 'opacity-60 hover:opacity-100',
       )}
     >
       <Avatar className="w-8 h-8">
         {account.avatar && <AvatarImage src={account.avatar} alt={account.firstName} />}
-        <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
+        <AvatarFallback className={cn('text-white text-xs font-semibold', bgColor)}>
           {initial}
         </AvatarFallback>
       </Avatar>
@@ -67,7 +72,7 @@ export function AccountSwitcher() {
   if (accounts.length === 1) {
     return (
       <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border">
-        {accounts[0] && <AccountAvatar account={accounts[0]} isActive={true} onClick={() => {}} />}
+        {accounts[0] && <AccountAvatar account={accounts[0]} isActive={true} colorIndex={0} onClick={() => {}} />}
         {addButton}
       </div>
     )
@@ -75,11 +80,12 @@ export function AccountSwitcher() {
 
   return (
     <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border overflow-x-auto scrollbar-none">
-      {accounts.map((account) => (
+      {accounts.map((account, index) => (
         <AccountAvatar
           key={account.id}
           account={account}
           isActive={account.id === activeAccountId}
+          colorIndex={index}
           onClick={() => handleSwitch(account.id)}
         />
       ))}

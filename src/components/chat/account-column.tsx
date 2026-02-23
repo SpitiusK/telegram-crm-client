@@ -4,58 +4,40 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { BUILTIN_TABS, matchesFolder } from '@/lib/chat-folders'
+import type { ChatFolder } from '@/lib/chat-folders'
 import { useChatsStore } from '../../stores/chats'
-import type { ChatFolder } from '../../stores/chats'
-import type { TelegramDialog } from '../../types'
+import type { SearchResult } from '../../types'
 import { ChatListItem } from './chat-list-item'
+import { SearchResultItem } from './search-results'
 import { Spinner } from '@/components/ui/spinner'
-
-const BUILTIN_TABS: { key: ChatFolder; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'users', label: 'Users' },
-  { key: 'groups', label: 'Groups' },
-  { key: 'channels', label: 'Channels' },
-  { key: 'forums', label: 'Forums' },
-  { key: 'bots', label: 'Bots' },
-]
-
-function matchesFolder(dialog: TelegramDialog, folder: ChatFolder): boolean {
-  switch (folder) {
-    case 'all':
-      return true
-    case 'users':
-      return dialog.isUser && !dialog.isSavedMessages
-    case 'groups':
-      return dialog.isGroup
-    case 'channels':
-      return dialog.isChannel && !dialog.isForum
-    case 'forums':
-      return !!dialog.isForum
-    case 'bots':
-      return dialog.isUser && !!dialog.username && dialog.username.toLowerCase().endsWith('bot')
-    default:
-      return true
-  }
-}
 
 interface AccountColumnProps {
   accountId: string
   accountName: string
   accountColorClass: string
+  accountRingColorClass?: string
   isCollapsed: boolean
   onToggleCollapse: () => void
+  searchResults?: SearchResult[]
+  isSearching?: boolean
+  searchQuery?: string
 }
 
 export function AccountColumn({
   accountId,
   accountName,
   accountColorClass,
+  accountRingColorClass,
   isCollapsed,
   onToggleCollapse,
+  searchResults,
+  isSearching: isSearchingProp,
+  searchQuery,
 }: AccountColumnProps) {
   const [activeFolder, setActiveFolder] = useState<ChatFolder>('all')
 
-  const { getAccountState, pinnedChats, isLoadingDialogs, userFolders } = useChatsStore()
+  const { getAccountState, pinnedChats, isLoadingDialogs, userFolders, setActiveChat } = useChatsStore()
   const accountState = getAccountState(accountId)
   const dialogs = accountState.dialogs
 
@@ -102,16 +84,20 @@ export function AccountColumn({
           title={`Expand ${accountName}`}
           className="w-full h-auto flex flex-col items-center gap-1 py-3 rounded-none"
         >
-          <Avatar className="w-8 h-8">
+          <Avatar className={cn('w-8 h-8', accountRingColorClass && `ring-2 ${accountRingColorClass}`)}>
             <AvatarFallback className={cn('text-white text-xs font-semibold', accountColorClass)}>
               {initial}
             </AvatarFallback>
           </Avatar>
-          {totalUnread > 0 && (
+          {searchResults && searchResults.length > 0 ? (
+            <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-primary/80 flex items-center justify-center text-white text-[10px] font-medium">
+              {searchResults.length}
+            </span>
+          ) : totalUnread > 0 ? (
             <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-medium">
               {totalUnread > 99 ? '99+' : totalUnread}
             </span>
-          )}
+          ) : null}
         </Button>
       </div>
     )
@@ -122,7 +108,7 @@ export function AccountColumn({
     <div className="w-[260px] min-w-[200px] flex-1 max-w-[320px] bg-popover flex flex-col border-r border-border">
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-        <Avatar className="w-7 h-7 flex-shrink-0">
+        <Avatar className={cn('w-7 h-7 flex-shrink-0', accountRingColorClass && `ring-2 ${accountRingColorClass}`)}>
           <AvatarFallback className={cn('text-white text-xs font-semibold', accountColorClass)}>
             {initial}
           </AvatarFallback>
@@ -149,65 +135,46 @@ export function AccountColumn({
 
       {/* Folder tabs */}
       <div className="flex overflow-x-auto scrollbar-none border-b border-border">
-        {BUILTIN_TABS.map((tab) => (
-          <Button
-            key={tab.key}
-            variant="ghost"
-            onClick={() => setActiveFolder(tab.key)}
-            className={cn(
-              'flex-shrink-0 px-3 py-2 text-xs font-medium h-auto rounded-none relative',
-              activeFolder === tab.key
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {tab.label}
-            {activeFolder === tab.key && (
-              <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />
-            )}
-          </Button>
-        ))}
+        {BUILTIN_TABS.map((tab) => {
+          const active = activeFolder === tab.key
+          return (
+            <Button key={tab.key} variant="ghost" onClick={() => setActiveFolder(tab.key)} className={cn('flex-shrink-0 px-3 py-2 text-xs font-medium h-auto rounded-none relative', active ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+              {tab.label}
+              {active && <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />}
+            </Button>
+          )
+        })}
         {userFolders.map((folder) => {
           const key: ChatFolder = `folder:${folder.id}`
+          const active = activeFolder === key
           const label = folder.emoji ? `${folder.emoji} ${folder.title}` : folder.title
           return (
-            <Button
-              key={key}
-              variant="ghost"
-              onClick={() => setActiveFolder(key)}
-              className={cn(
-                'flex-shrink-0 px-3 py-2 text-xs font-medium h-auto rounded-none relative',
-                activeFolder === key
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
+            <Button key={key} variant="ghost" onClick={() => setActiveFolder(key)} className={cn('flex-shrink-0 px-3 py-2 text-xs font-medium h-auto rounded-none relative', active ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
               {label}
-              {activeFolder === key && (
-                <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />
-              )}
+              {active && <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />}
             </Button>
           )
         })}
       </div>
 
-      {/* Dialog list */}
+      {/* Dialog list or search results */}
       <ScrollArea className="flex-1">
-        {isLoadingDialogs ? (
-          <div className="flex items-center justify-center py-8">
-            <Spinner />
-          </div>
+        {searchResults ? (
+          isSearchingProp ? (
+            <div className="flex items-center justify-center py-8"><Spinner size="sm" /></div>
+          ) : searchResults.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">No results</div>
+          ) : (
+            searchResults.map((r) => (
+              <SearchResultItem key={`${r.chatId}-${r.id}`} result={r} query={searchQuery ?? ''} onClick={() => void setActiveChat(r.chatId)} />
+            ))
+          )
+        ) : isLoadingDialogs ? (
+          <div className="flex items-center justify-center py-8"><Spinner /></div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            No chats
-          </div>
+          <div className="text-center py-8 text-muted-foreground text-sm">No chats</div>
         ) : (
-          filtered.map((dialog) => (
-            <ChatListItem
-              key={dialog.id}
-              dialog={dialog}
-            />
-          ))
+          filtered.map((dialog) => <ChatListItem key={dialog.id} dialog={dialog} />)
         )}
       </ScrollArea>
     </div>

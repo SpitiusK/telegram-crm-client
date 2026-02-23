@@ -80,6 +80,7 @@ export function ChatView() {
       {showProfile && currentDialog && (
         <UserProfilePanel
           userId={currentDialog.id}
+          accountId={activeChat.accountId}
           onClose={() => setShowProfile(false)}
         />
       )}

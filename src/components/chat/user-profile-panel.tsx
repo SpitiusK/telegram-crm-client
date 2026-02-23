@@ -4,30 +4,53 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
-import type { UserProfile } from '../../types'
+import { SharedMediaSection } from './shared-media-section'
+import { SharedMediaGallery } from './shared-media-gallery'
+import type { UserProfile, SharedMediaFilter } from '../../types'
 
 interface UserProfilePanelProps {
   userId: string
+  accountId?: string
   onClose: () => void
 }
 
-export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
+export function UserProfilePanel({ userId, accountId, onClose }: UserProfilePanelProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [mediaFilter, setMediaFilter] = useState<SharedMediaFilter | null>(null)
 
   useEffect(() => {
-    setIsLoading(true)
-    void window.electronAPI.telegram.getUserInfo(userId).then((info) => {
-      setProfile(info)
-      setIsLoading(false)
+    setIsLoading(true) // eslint-disable-line react-hooks/set-state-in-effect -- reset on dep change
+    setMediaFilter(null)
+    let cancelled = false
+    void window.electronAPI.telegram.getUserInfo(userId, accountId).then((info) => {
+      if (!cancelled) {
+        setProfile(info)
+        setIsLoading(false)
+      }
     }).catch(() => {
-      setIsLoading(false)
+      if (!cancelled) setIsLoading(false)
     })
-  }, [userId])
+    return () => { cancelled = true }
+  }, [userId, accountId])
 
   const initials = profile?.firstName
     ? (profile.firstName[0] ?? '').toUpperCase()
     : '?'
+
+  // Gallery overlay replaces scroll content
+  if (mediaFilter) {
+    return (
+      <div className="w-[320px] min-w-[320px] bg-popover border-l border-border flex flex-col">
+        <SharedMediaGallery
+          chatId={userId}
+          filter={mediaFilter}
+          accountId={accountId}
+          onClose={() => setMediaFilter(null)}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="w-[320px] min-w-[320px] bg-popover border-l border-border flex flex-col">
@@ -98,6 +121,13 @@ export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
               </div>
             )}
           </div>
+
+          {/* Shared Media */}
+          <SharedMediaSection
+            chatId={userId}
+            accountId={accountId}
+            onOpenGallery={setMediaFilter}
+          />
         </ScrollArea>
       ) : (
         <div className="flex items-center justify-center py-12">

@@ -54,16 +54,16 @@ export default {
           hover: '#1e2c3a',
           input: '#242f3d',
         },
-        // Account colors for multi-account badges/dots
+        // Account colors for multi-account badges/dots (soft pastel palette)
         account: {
-          1: '#3b82f6',
-          2: '#22c55e',
-          3: '#f59e0b',
-          4: '#ef4444',
-          5: '#8b5cf6',
-          6: '#ec4899',
-          7: '#06b6d4',
-          8: '#f97316',
+          1: '#5b9bd5',
+          2: '#6bc47f',
+          3: '#e8b84d',
+          4: '#e07070',
+          5: '#9b7fd4',
+          6: '#d97fac',
+          7: '#4ebccc',
+          8: '#e89858',
         },
         // CRM deal stage colors
         crm: {

@@ -25,6 +25,8 @@ const api = {
     sendFile: (chatId: string, filePath: string, caption?: string, replyTo?: number, accountId?: string) => ipcRenderer.invoke('telegram:sendFile', accountId, chatId, filePath, caption, replyTo),
     sendPhoto: (chatId: string, base64Data: string, caption?: string, replyTo?: number, accountId?: string) => ipcRenderer.invoke('telegram:sendPhoto', accountId, chatId, base64Data, caption, replyTo),
     searchMessages: (query: string, chatId?: string, limit?: number, accountId?: string) => ipcRenderer.invoke('telegram:searchMessages', accountId, query, chatId, limit),
+    getSharedMediaCounts: (chatId: string, accountId?: string) => ipcRenderer.invoke('telegram:getSharedMediaCounts', accountId, chatId),
+    getSharedMedia: (chatId: string, filter: string, limit?: number, offset?: number, accountId?: string) => ipcRenderer.invoke('telegram:getSharedMedia', accountId, chatId, filter, limit, offset),
     setTyping: (chatId: string, accountId?: string) => ipcRenderer.invoke('telegram:setTyping', accountId, chatId),
     setNotificationSettings: (settings: { mutedChats: string[] }) =>
       ipcRenderer.invoke('telegram:setNotificationSettings', settings),

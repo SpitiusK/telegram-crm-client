@@ -13,6 +13,7 @@ import type { TelegramDialog } from '../../types'
 interface ChatListItemProps {
   dialog: TelegramDialog
   accountColor?: string
+  accountRingColor?: string
 }
 
 function formatTime(timestamp: number): string {
@@ -82,7 +83,7 @@ function ChatTypeIcon({ dialog }: { dialog: TelegramDialog }) {
   return null
 }
 
-export const ChatListItem = memo(function ChatListItem({ dialog, accountColor }: ChatListItemProps) {
+export const ChatListItem = memo(function ChatListItem({ dialog, accountColor, accountRingColor }: ChatListItemProps) {
   const { activeChat, setActiveChat, drafts, pinnedChats, mutedChats } = useChatsStore()
   const { toggleCrmPanel } = useUIStore()
   const { findDealByPhone } = useCrmStore()
@@ -121,11 +122,11 @@ export const ChatListItem = memo(function ChatListItem({ dialog, accountColor }:
           isActive ? 'bg-primary/20' : '',
         )}
       >
-        <div className="relative flex-shrink-0">
+        <div className={cn('relative flex-shrink-0', accountRingColor && `ring-2 rounded-full ${accountRingColor}`)}>
           <DialogAvatar dialog={dialog} />
           {accountColor && (
             <span
-              className={cn('absolute top-0 right-0 w-2 h-2 rounded-full ring-2 ring-popover', accountColor)}
+              className={cn('absolute bottom-0 right-0 w-3 h-3 rounded-full ring-2 ring-popover', accountColor)}
             />
           )}
         </div>
@@ -193,5 +194,6 @@ export const ChatListItem = memo(function ChatListItem({ dialog, accountColor }:
     p.lastMessageDate === n.lastMessageDate &&
     p.unreadCount === n.unreadCount &&
     p.avatar === n.avatar &&
-    prev.accountColor === next.accountColor
+    prev.accountColor === next.accountColor &&
+    prev.accountRingColor === next.accountRingColor
 })

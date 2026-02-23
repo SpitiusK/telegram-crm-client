@@ -4,44 +4,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { ACCOUNT_COLORS } from '@/lib/constants'
+import { ACCOUNT_COLORS, ACCOUNT_RING_COLORS } from '@/lib/constants'
+import { BUILTIN_TABS, matchesFolder } from '@/lib/chat-folders'
+import type { ChatFolder } from '@/lib/chat-folders'
 import { useChatsStore } from '../../stores/chats'
 import { useUIStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
-import type { ChatFolder } from '../../stores/chats'
-import type { TelegramDialog, SearchResult } from '../../types'
+import type { SearchResult } from '../../types'
 import { ChatListItem } from './chat-list-item'
 import { AccountSwitcher } from './account-switcher'
 import { SearchResultItem } from './search-results'
 import { Spinner } from '../ui/spinner'
-
-const BUILTIN_TABS: { key: ChatFolder; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'users', label: 'Users' },
-  { key: 'groups', label: 'Groups' },
-  { key: 'channels', label: 'Channels' },
-  { key: 'forums', label: 'Forums' },
-  { key: 'bots', label: 'Bots' },
-]
-
-function matchesFolder(dialog: TelegramDialog, folder: ChatFolder): boolean {
-  switch (folder) {
-    case 'all':
-      return true
-    case 'users':
-      return dialog.isUser && !dialog.isSavedMessages
-    case 'groups':
-      return dialog.isGroup
-    case 'channels':
-      return dialog.isChannel && !dialog.isForum
-    case 'forums':
-      return !!dialog.isForum
-    case 'bots':
-      return dialog.isUser && !!dialog.username && dialog.username.toLowerCase().endsWith('bot')
-    default:
-      return true
-  }
-}
 
 function FolderTab({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
   return (
@@ -142,12 +115,15 @@ export function ChatSidebar({ width }: ChatSidebarProps) {
 
   const accountColorMap = useMemo(() => {
     if (accounts.length <= 1) return null
-    const map = new Map<string, string>()
+    const bgMap = new Map<string, string>()
+    const ringMap = new Map<string, string>()
     accounts.forEach((acc, i) => {
-      const colorClass = ACCOUNT_COLORS[i % ACCOUNT_COLORS.length]
-      if (colorClass) map.set(acc.id, colorClass)
+      const bgClass = ACCOUNT_COLORS[i % ACCOUNT_COLORS.length]
+      const ringClass = ACCOUNT_RING_COLORS[i % ACCOUNT_RING_COLORS.length]
+      if (bgClass) bgMap.set(acc.id, bgClass)
+      if (ringClass) ringMap.set(acc.id, ringClass)
     })
-    return map
+    return { bgMap, ringMap }
   }, [accounts])
 
   const hasSearchQuery = search.trim().length >= 3
@@ -211,7 +187,7 @@ export function ChatSidebar({ width }: ChatSidebarProps) {
         ) : (
           <>
             {filtered.map((dialog) => (
-              <ChatListItem key={dialog.id} dialog={dialog} accountColor={accountColorMap && dialog.accountId ? accountColorMap.get(dialog.accountId) : undefined} />
+              <ChatListItem key={dialog.id} dialog={dialog} accountColor={accountColorMap && dialog.accountId ? accountColorMap.bgMap.get(dialog.accountId) : undefined} accountRingColor={accountColorMap && dialog.accountId ? accountColorMap.ringMap.get(dialog.accountId) : undefined} />
             ))}
             {showSearchResults && (
               <div className="border-t border-border">
@@ -228,7 +204,7 @@ export function ChatSidebar({ width }: ChatSidebarProps) {
                       result={result}
                       query={search}
                       onClick={() => handleResultClick(result)}
-                      accountColor={accountColorMap && result.accountId ? accountColorMap.get(result.accountId) : undefined}
+                      accountColor={accountColorMap && result.accountId ? accountColorMap.bgMap.get(result.accountId) : undefined}
                     />
                   ))
                 )}

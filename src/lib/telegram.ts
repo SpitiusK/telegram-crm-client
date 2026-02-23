@@ -1,4 +1,4 @@
-import type { TelegramDialog, TelegramMessage, TelegramUser, TelegramAccount, UserProfile, VerifyCodeResult, SendMessageResult, ForumTopic, SearchResult, DialogFilter } from '../types'
+import type { TelegramDialog, TelegramMessage, TelegramUser, TelegramAccount, UserProfile, VerifyCodeResult, SendMessageResult, ForumTopic, SearchResult, DialogFilter, SharedMediaCounts, SharedMediaItem, SharedMediaFilter } from '../types'
 
 const api = () => window.electronAPI.telegram
 
@@ -30,6 +30,8 @@ export const telegramAPI = {
   sendTopicMessage: (chatId: string, topicId: number, text: string, accountId?: string): Promise<SendMessageResult> => api().sendTopicMessage(chatId, topicId, text, accountId),
   getDialogFilters: (accountId?: string): Promise<DialogFilter[]> => api().getDialogFilters(accountId),
   getArchivedDialogs: (limit?: number, accountId?: string): Promise<TelegramDialog[]> => api().getArchivedDialogs(limit, accountId),
+  getSharedMediaCounts: (chatId: string, accountId?: string): Promise<SharedMediaCounts> => api().getSharedMediaCounts(chatId, accountId),
+  getSharedMedia: (chatId: string, filter: SharedMediaFilter, limit?: number, offset?: number, accountId?: string): Promise<SharedMediaItem[]> => api().getSharedMedia(chatId, filter, limit, offset, accountId),
   // Settings / account management (no accountId)
   setNotificationSettings: (settings: { mutedChats: string[] }): Promise<void> => api().setNotificationSettings(settings),
   logout: () => api().logout(),

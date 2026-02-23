@@ -122,6 +122,31 @@ export interface SearchResult {
   senderId: string
 }
 
+export type SharedMediaFilter = 'photos' | 'videos' | 'links' | 'voice' | 'documents'
+
+export interface SharedMediaItem {
+  id: number
+  date: number
+  type: SharedMediaFilter
+  thumbnail?: string
+  url?: string
+  linkTitle?: string
+  linkDescription?: string
+  linkSiteName?: string
+  fileName?: string
+  size?: number
+  duration?: number
+  mimeType?: string
+}
+
+export interface SharedMediaCounts {
+  photos: number
+  videos: number
+  links: number
+  voice: number
+  documents: number
+}
+
 export interface BitrixDeal {
   ID: string
   TITLE: string
@@ -201,6 +226,8 @@ export interface ElectronAPI {
     markRead: (chatId: string, accountId?: string) => Promise<void>
     getDialogFilters: (accountId?: string) => Promise<DialogFilter[]>
     getArchivedDialogs: (limit?: number, accountId?: string) => Promise<TelegramDialog[]>
+    getSharedMediaCounts: (chatId: string, accountId?: string) => Promise<SharedMediaCounts>
+    getSharedMedia: (chatId: string, filter: SharedMediaFilter, limit?: number, offset?: number, accountId?: string) => Promise<SharedMediaItem[]>
     // Settings / account management (no accountId)
     setNotificationSettings: (settings: { mutedChats: string[] }) => Promise<void>
     logout: () => Promise<void>

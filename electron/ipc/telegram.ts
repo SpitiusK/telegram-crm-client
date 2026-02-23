@@ -129,7 +129,7 @@ async function finalizeAuth(tc: TelegramClient): Promise<void> {
 
   const accountId = me.id.toString()
 
-  // Download avatar
+  // Download avatar (retry once after 2s on failure)
   let avatar: string | undefined
   try {
     const photo = await tc.downloadProfilePhoto(me)
@@ -137,6 +137,15 @@ async function finalizeAuth(tc: TelegramClient): Promise<void> {
       avatar = `data:image/jpeg;base64,${photo.toString('base64')}`
     }
   } catch { /* ignore */ }
+  if (!avatar) {
+    try {
+      await new Promise((r) => setTimeout(r, 2000))
+      const photo = await tc.downloadProfilePhoto(me)
+      if (Buffer.isBuffer(photo) && photo.length > 0) {
+        avatar = `data:image/jpeg;base64,${photo.toString('base64')}`
+      }
+    } catch { /* ignore retry */ }
+  }
 
   const info: AccountInfo = {
     firstName: me.firstName ?? '',
@@ -534,6 +543,23 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
       // Try cached info first
       const cached = getAccountInfo(id)
       if (cached) {
+        // If cached info has no avatar but client is connected, try re-downloading
+        if (!cached.avatar) {
+          const entry = accounts.get(id)
+          if (entry) {
+            try {
+              const me = await entry.client.getMe()
+              if (me instanceof Api.User) {
+                const photo = await entry.client.downloadProfilePhoto(me)
+                if (Buffer.isBuffer(photo) && photo.length > 0) {
+                  cached.avatar = `data:image/jpeg;base64,${photo.toString('base64')}`
+                  const db = getDatabase()
+                  db.saveSession(`account_info_${id}`, JSON.stringify(cached))
+                }
+              }
+            } catch { /* ignore avatar re-download */ }
+          }
+        }
         results.push({
           id,
           firstName: cached.firstName,
@@ -1575,6 +1601,161 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
           })
       )
     }
+  })
+
+  ipcMain.handle('telegram:getSharedMediaCounts', async (_event, accountId: string | undefined, chatId: string) => {
+    const tc = getClientForAccount(accountId)
+    const entity = await tc.getInputEntity(chatId)
+
+    const filters = [
+      new Api.InputMessagesFilterPhotos(),
+      new Api.InputMessagesFilterVideo(),
+      new Api.InputMessagesFilterUrl(),
+      new Api.InputMessagesFilterVoice(),
+      new Api.InputMessagesFilterDocument(),
+    ]
+
+    const result = await tc.invoke(
+      new Api.messages.GetSearchCounters({
+        peer: entity,
+        filters,
+      })
+    )
+
+    const counts = result as unknown as Array<{ count: number }>
+    return {
+      photos: counts[0]?.count ?? 0,
+      videos: counts[1]?.count ?? 0,
+      links: counts[2]?.count ?? 0,
+      voice: counts[3]?.count ?? 0,
+      documents: counts[4]?.count ?? 0,
+    }
+  })
+
+  ipcMain.handle('telegram:getSharedMedia', async (_event, accountId: string | undefined, chatId: string, filter: string, limit = 20, addOffset = 0) => {
+    const tc = getClientForAccount(accountId)
+    const entity = await tc.getEntity(chatId)
+
+    const filterMap: Record<string, Api.TypeMessagesFilter> = {
+      photos: new Api.InputMessagesFilterPhotos(),
+      videos: new Api.InputMessagesFilterVideo(),
+      links: new Api.InputMessagesFilterUrl(),
+      voice: new Api.InputMessagesFilterVoice(),
+      documents: new Api.InputMessagesFilterDocument(),
+    }
+
+    const msgFilter = filterMap[filter]
+    if (!msgFilter) throw new Error(`Unknown media filter: ${filter}`)
+
+    const messages = await tc.getMessages(entity, { limit, addOffset, filter: msgFilter })
+
+    const items: Array<{
+      id: number; date: number; type: string
+      thumbnail?: string; url?: string
+      linkTitle?: string; linkDescription?: string; linkSiteName?: string
+      fileName?: string; size?: number; duration?: number; mimeType?: string
+    }> = []
+
+    for (const m of messages) {
+      if (!(m instanceof Api.Message)) continue
+
+      if (filter === 'photos') {
+        if (m.media instanceof Api.MessageMediaPhoto) {
+          let thumbnail: string | undefined
+          try {
+            const buf = await tc.downloadMedia(m.media, {})
+            if (Buffer.isBuffer(buf) && buf.length > 0) {
+              thumbnail = `data:image/jpeg;base64,${buf.toString('base64')}`
+            }
+          } catch { /* skip */ }
+          items.push({ id: m.id, date: m.date ?? 0, type: 'photos', thumbnail })
+        }
+      } else if (filter === 'videos') {
+        if (m.media instanceof Api.MessageMediaDocument) {
+          const doc = m.media.document
+          if (doc instanceof Api.Document) {
+            const videoAttr = doc.attributes.find(
+              (a): a is Api.DocumentAttributeVideo => a instanceof Api.DocumentAttributeVideo
+            )
+            let thumbnail: string | undefined
+            try {
+              // Download thumbnail only (thumb index 0)
+              if (doc.thumbs && doc.thumbs.length > 0) {
+                const buf = await tc.downloadMedia(m.media, { thumb: 0 })
+                if (Buffer.isBuffer(buf) && buf.length > 0) {
+                  thumbnail = `data:image/jpeg;base64,${buf.toString('base64')}`
+                }
+              }
+            } catch { /* skip thumbnail */ }
+            items.push({
+              id: m.id, date: m.date ?? 0, type: 'videos', thumbnail,
+              duration: videoAttr?.duration,
+              size: Number(doc.size),
+              mimeType: doc.mimeType,
+            })
+          }
+        }
+      } else if (filter === 'links') {
+        // Extract URL from web page or message entities
+        let url: string | undefined
+        let linkTitle: string | undefined
+        let linkDescription: string | undefined
+        let linkSiteName: string | undefined
+
+        if (m.media instanceof Api.MessageMediaWebPage && m.media.webpage instanceof Api.WebPage) {
+          const wp = m.media.webpage
+          url = wp.url
+          linkTitle = wp.title ?? undefined
+          linkDescription = wp.description ?? undefined
+          linkSiteName = wp.siteName ?? undefined
+        } else if (m.entities) {
+          for (const e of m.entities) {
+            if (e instanceof Api.MessageEntityUrl) {
+              url = (m.message ?? '').slice(e.offset, e.offset + e.length)
+              break
+            }
+            if (e instanceof Api.MessageEntityTextUrl) {
+              url = e.url
+              break
+            }
+          }
+        }
+        if (url) {
+          items.push({ id: m.id, date: m.date ?? 0, type: 'links', url, linkTitle, linkDescription, linkSiteName })
+        }
+      } else if (filter === 'voice') {
+        if (m.media instanceof Api.MessageMediaDocument) {
+          const doc = m.media.document
+          if (doc instanceof Api.Document) {
+            const audioAttr = doc.attributes.find(
+              (a): a is Api.DocumentAttributeAudio => a instanceof Api.DocumentAttributeAudio
+            )
+            items.push({
+              id: m.id, date: m.date ?? 0, type: 'voice',
+              duration: audioAttr?.duration,
+              size: Number(doc.size),
+            })
+          }
+        }
+      } else if (filter === 'documents') {
+        if (m.media instanceof Api.MessageMediaDocument) {
+          const doc = m.media.document
+          if (doc instanceof Api.Document) {
+            const fileNameAttr = doc.attributes.find(
+              (a): a is Api.DocumentAttributeFilename => a instanceof Api.DocumentAttributeFilename
+            )
+            items.push({
+              id: m.id, date: m.date ?? 0, type: 'documents',
+              fileName: fileNameAttr?.fileName ?? 'file',
+              size: Number(doc.size),
+              mimeType: doc.mimeType,
+            })
+          }
+        }
+      }
+    }
+
+    return items
   })
 
   ipcMain.handle('telegram:setTyping', async (_event, accountId: string | undefined, chatId: string) => {
