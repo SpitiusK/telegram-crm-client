@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useAuthStore } from '../../stores/auth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export function PhoneLogin() {
   const { phoneCodeHash, error, loginWithPhone, verifyCode } = useAuthStore()
@@ -22,43 +24,42 @@ export function PhoneLogin() {
     <div className="flex flex-col gap-4">
       {!phoneCodeHash ? (
         <>
-          <input
+          <Input
             type="tel"
             placeholder="+7 999 123 4567"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendCode()}
-            className="w-full px-4 py-3 bg-muted text-foreground rounded-lg border border-border focus:border-primary focus:outline-none text-sm"
           />
-          <button
+          <Button
             onClick={handleSendCode}
             disabled={!phone.trim()}
-            className="w-full py-3 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full"
           >
             Send Code
-          </button>
+          </Button>
         </>
       ) : (
         <>
           <p className="text-muted-foreground text-sm text-center">
             Code sent to <span className="text-foreground">{phone}</span>
           </p>
-          <input
+          <Input
             type="text"
             placeholder="12345"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
             maxLength={6}
-            className="w-full px-4 py-3 bg-muted text-foreground rounded-lg border border-border focus:border-primary focus:outline-none text-sm text-center tracking-[0.5em] text-lg"
+            className="text-center tracking-[0.5em] text-lg"
           />
-          <button
+          <Button
             onClick={handleVerify}
             disabled={!code.trim()}
-            className="w-full py-3 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full"
           >
             Verify
-          </button>
+          </Button>
         </>
       )}
 

@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
-import { useCrmStore } from '../../stores/crm'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
+import { useCrmStore } from '../../stores/crm'
 import type { BitrixDeal } from '../../types'
 import { DealCard } from './deal-card'
 
@@ -53,9 +55,7 @@ export function PipelineBoard() {
     <div className="flex-1 flex flex-col bg-background overflow-hidden">
       <div className="h-12 px-4 flex items-center border-b border-border bg-popover">
         <h2 className="text-foreground text-sm font-semibold">Pipeline</h2>
-        <span className="text-muted-foreground text-xs ml-auto">
-          {deals.length} deals
-        </span>
+        <span className="text-muted-foreground text-xs ml-auto">{deals.length} deals</span>
       </div>
 
       <div className="flex-1 flex gap-2 p-3 overflow-x-auto">
@@ -64,27 +64,29 @@ export function PipelineBoard() {
           return (
             <div
               key={stage.stageId}
-              className="min-w-[220px] max-w-[260px] flex-shrink-0 flex flex-col bg-popover rounded-lg"
+              className="min-w-[220px] max-w-[260px] flex-shrink-0 flex flex-col bg-popover rounded-lg border border-border"
             >
               <div className="flex items-center justify-between px-3 py-2 border-b border-border">
                 <span className="text-foreground text-xs font-medium truncate">
                   {stage.label}
                 </span>
-                <span className="text-muted-foreground text-xs ml-2">
+                <Badge variant="secondary" className="text-[11px] ml-2 px-1.5 py-0 h-5">
                   {stageDeals.length}
-                </span>
+                </Badge>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                {stageDeals.map((deal) => (
-                  <DealCard key={deal.ID} deal={deal} />
-                ))}
-                {stageDeals.length === 0 && (
-                  <p className="text-muted-foreground text-xs text-center py-4">
-                    No deals
-                  </p>
-                )}
-              </div>
+              <ScrollArea className="flex-1">
+                <div className="p-2 space-y-2">
+                  {stageDeals.map((deal) => (
+                    <DealCard key={deal.ID} deal={deal} />
+                  ))}
+                  {stageDeals.length === 0 && (
+                    <p className="text-muted-foreground text-xs text-center py-4">
+                      No deals
+                    </p>
+                  )}
+                </div>
+              </ScrollArea>
             </div>
           )
         })}

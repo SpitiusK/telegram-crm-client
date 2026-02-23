@@ -1,5 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface ImageLightboxProps {
   src: string
@@ -26,13 +28,15 @@ export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
       onClick={onClose}
     >
-      <button
-        className="absolute top-4 right-4 text-white/80 hover:text-white text-3xl leading-none cursor-pointer"
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-4 text-white/80 hover:text-white hover:bg-white/10 rounded-full"
         onClick={onClose}
         aria-label="Close"
       >
-        &#x2715;
-      </button>
+        <X className="w-6 h-6" />
+      </Button>
       <img
         src={src}
         alt=""

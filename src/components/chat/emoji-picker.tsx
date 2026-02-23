@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 
 const RECENT_KEY = 'emoji-picker-recent'
 const MAX_RECENT = 20
@@ -162,13 +166,13 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
     >
       {/* Search */}
       <div className="p-2 border-b border-border">
-        <input
+        <Input
           ref={searchRef}
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search emoji..."
-          className="w-full bg-muted text-foreground text-sm rounded-lg px-3 py-1.5 border-none focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+          className="bg-muted border-none focus-visible:ring-1 focus-visible:ring-primary h-8 text-sm"
         />
       </div>
 
@@ -176,34 +180,39 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
       {!search && (
         <div className="flex border-b border-border">
           {recent.length > 0 && (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setActiveTab(-1)}
-              className={`flex-1 py-1.5 text-center text-lg hover:bg-accent transition-colors ${
-                activeTab === -1 ? 'bg-primary/10 border-b-2 border-primary' : ''
-              }`}
+              className={cn(
+                'flex-1 py-1.5 text-center text-lg h-auto rounded-none',
+                activeTab === -1 ? 'bg-primary/10 border-b-2 border-primary' : '',
+              )}
               aria-label="Recent emojis"
               title="Recent"
             >
-              🕐
-            </button>
+              {'\u{1F550}'}
+            </Button>
           )}
           {categories.map((cat, i) => (
-            <button
+            <Button
               key={cat.label}
+              variant="ghost"
               onClick={() => setActiveTab(i)}
-              className={`flex-1 py-1.5 text-center text-lg hover:bg-accent transition-colors ${
-                activeTab === i ? 'bg-primary/10 border-b-2 border-primary' : ''
-              }`}
+              className={cn(
+                'flex-1 py-1.5 text-center text-lg h-auto rounded-none',
+                activeTab === i ? 'bg-primary/10 border-b-2 border-primary' : '',
+              )}
               title={cat.label}
             >
               {cat.icon}
-            </button>
+            </Button>
           ))}
         </div>
       )}
 
       {/* Emoji grid */}
-      <div className="max-h-[260px] overflow-y-auto p-2">
+      <ScrollArea className="max-h-[260px]">
+      <div className="p-2">
         {search ? (
           <div className="grid grid-cols-8 gap-0.5">
             {(filteredEmojis ?? []).map((emoji) => (
@@ -250,6 +259,7 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
           </>
         )}
       </div>
+      </ScrollArea>
     </div>
   )
 }

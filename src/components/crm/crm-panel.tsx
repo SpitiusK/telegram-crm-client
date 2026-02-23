@@ -1,3 +1,7 @@
+import { X, ClipboardList } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import { useCrmStore } from '../../stores/crm'
 import { useUIStore } from '../../stores/ui'
 import { DealInfo } from './deal-info'
@@ -12,29 +16,28 @@ export function CrmPanel() {
       {/* Header */}
       <div className="h-14 px-4 flex items-center justify-between border-b border-border">
         <h3 className="text-foreground text-sm font-semibold">CRM Panel</h3>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={toggleCrmPanel}
           aria-label="Close CRM panel"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          <X className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <ScrollArea className="flex-1">
         {currentDeal ? (
           <>
             <DealInfo deal={currentDeal} contact={currentContact} />
-            <div className="border-t border-border">
-              <AiComposer />
-            </div>
+            <Separator />
+            <AiComposer />
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full px-4">
-            <div className="text-4xl mb-3">📋</div>
+          <div className="flex flex-col items-center justify-center h-full min-h-[200px] px-4">
+            <ClipboardList className="w-8 h-8 text-muted-foreground mb-3" />
             <p className="text-muted-foreground text-sm text-center">
               No deal linked to this contact
             </p>
@@ -43,7 +46,7 @@ export function CrmPanel() {
             </p>
           </div>
         )}
-      </div>
+      </ScrollArea>
     </div>
   )
 }

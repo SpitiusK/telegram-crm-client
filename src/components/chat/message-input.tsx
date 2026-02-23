@@ -1,3 +1,6 @@
+import { Send, Check, Smile } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { EmojiPicker } from './emoji-picker'
 import { InputReplyPreview } from './input-reply-preview'
 import { AttachmentMenu } from './attachment-menu'
@@ -61,14 +64,16 @@ export function MessageInput() {
         <div className="flex items-end gap-2">
           {/* Emoji button + picker */}
           <div className="relative">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => { setShowEmoji(!showEmoji); setShowAttachMenu(false) }}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-accent transition-colors text-muted-foreground"
               aria-label="Emoji picker"
               title="Emoji"
+              className="rounded-full w-10 h-10 text-muted-foreground"
             >
-              <span className="text-xl">😊</span>
-            </button>
+              <Smile className="w-5 h-5" />
+            </Button>
             {showEmoji && (
               <EmojiPicker
                 onSelect={handleEmojiSelect}
@@ -84,7 +89,7 @@ export function MessageInput() {
             onDocAttach={handleDocAttach}
           />
 
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={text}
             onChange={(e) => handleTextChange(e.target.value)}
@@ -93,24 +98,21 @@ export function MessageInput() {
             onPaste={handlePaste}
             placeholder="Write a message..."
             rows={1}
-            className="flex-1 bg-muted text-foreground text-sm rounded-xl px-4 py-2.5 border-none focus:outline-none focus:ring-1 focus:ring-primary resize-none placeholder:text-muted-foreground"
+            className="flex-1 bg-muted border-none focus-visible:ring-1 focus-visible:ring-primary resize-none rounded-xl px-4 py-2.5 min-h-0"
           />
-          <button
+          <Button
             onClick={handleSend}
             disabled={!text.trim()}
+            size="icon"
             aria-label={isEditing ? 'Save edit' : 'Send message'}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="rounded-full w-10 h-10 shrink-0"
           >
             {isEditing ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+              <Check className="w-5 h-5" />
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
+              <Send className="w-5 h-5" />
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
+import { MessageSquare, BarChart2, ClipboardList, Columns2, Settings } from 'lucide-react'
 import { telegramAPI } from '../../lib/telegram'
 import { useChatsStore } from '../../stores/chats'
 import { useUIStore } from '../../stores/ui'
@@ -10,6 +11,8 @@ import { CrmPanel } from '../crm/crm-panel'
 import { PipelineBoard } from '../crm/pipeline-board'
 import { ActivityLog } from '../crm/activity-log'
 import { SettingsView } from '../settings/settings-view'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 type LayoutMode = 'single' | 'columns'
 
@@ -51,73 +54,79 @@ export function MainLayout() {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Top nav bar */}
-      <div className="h-12 flex items-center justify-between px-4 bg-popover border-b border-border">
+      <div className="h-12 flex items-center justify-between px-4 bg-popover border-b border-border shrink-0">
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant={view === 'chats' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setView('chats')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-              view === 'chats'
-                ? 'bg-primary text-white'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={cn(
+              'gap-1.5',
+              view !== 'chats' && 'text-muted-foreground hover:text-foreground'
+            )}
           >
-            💬 Chats
-          </button>
-          <button
+            <MessageSquare className="w-3.5 h-3.5" />
+            Chats
+          </Button>
+          <Button
+            variant={view === 'pipeline' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setView('pipeline')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-              view === 'pipeline'
-                ? 'bg-primary text-white'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={cn(
+              'gap-1.5',
+              view !== 'pipeline' && 'text-muted-foreground hover:text-foreground'
+            )}
           >
-            📊 Pipeline
-          </button>
-          <button
+            <BarChart2 className="w-3.5 h-3.5" />
+            Pipeline
+          </Button>
+          <Button
+            variant={view === 'activity' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setView('activity')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-              view === 'activity'
-                ? 'bg-primary text-white'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={cn(
+              'gap-1.5',
+              view !== 'activity' && 'text-muted-foreground hover:text-foreground'
+            )}
           >
-            📝 Activity
-          </button>
+            <ClipboardList className="w-3.5 h-3.5" />
+            Activity
+          </Button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {accounts.length > 1 && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={toggleLayoutMode}
               aria-label={layoutMode === 'columns' ? 'Switch to single sidebar' : 'Switch to multi-column layout'}
               title={layoutMode === 'columns' ? 'Switch to single sidebar' : 'Switch to multi-column layout'}
-              className={`p-1.5 rounded-md transition-colors ${
+              className={cn(
+                'h-8 w-8',
                 showColumns
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`}
+                  ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 4v16M15 4v16M3 4h18v16H3z" />
-              </svg>
-            </button>
+              <Columns2 className="w-4 h-4" />
+            </Button>
           )}
           {currentUser && (
             <span className="text-muted-foreground text-xs">
               {currentUser.firstName} {currentUser.lastName}
             </span>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setShowSettings(true)}
             aria-label="Settings"
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="Settings"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
+            <Settings className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 

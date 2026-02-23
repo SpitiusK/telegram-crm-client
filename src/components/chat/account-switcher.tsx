@@ -1,3 +1,7 @@
+import { Plus } from 'lucide-react'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '../../stores/auth'
 import { useChatsStore } from '../../stores/chats'
 import type { TelegramAccount } from '../../types'
@@ -17,19 +21,19 @@ function AccountAvatar({
       onClick={onClick}
       aria-label={`Switch to ${account.firstName}${account.username ? ` (@${account.username})` : ''}`}
       title={`${account.firstName}${account.username ? ` (@${account.username})` : ''}`}
-      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+      className={cn(
+        'flex-shrink-0 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         isActive
           ? 'ring-2 ring-primary ring-offset-1 ring-offset-popover'
-          : 'opacity-60 hover:opacity-100'
-      }`}
-    >
-      {account.avatar ? (
-        <img src={account.avatar} alt={account.firstName} className="w-8 h-8 rounded-full object-cover" />
-      ) : (
-        <span className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center">
-          {initial}
-        </span>
+          : 'opacity-60 hover:opacity-100',
       )}
+    >
+      <Avatar className="w-8 h-8">
+        {account.avatar && <AvatarImage src={account.avatar} alt={account.firstName} />}
+        <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
+          {initial}
+        </AvatarFallback>
+      </Avatar>
     </button>
   )
 }
@@ -48,16 +52,16 @@ export function AccountSwitcher() {
   }
 
   const addButton = (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={() => void startAddAccount()}
       aria-label="Add account"
       title="Add account"
-      className="flex-shrink-0 w-8 h-8 rounded-full bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+      className="flex-shrink-0 w-8 h-8 rounded-full bg-accent text-muted-foreground hover:text-foreground"
     >
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-      </svg>
-    </button>
+      <Plus className="w-4 h-4" />
+    </Button>
   )
 
   if (accounts.length === 1) {

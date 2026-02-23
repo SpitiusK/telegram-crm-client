@@ -1,5 +1,9 @@
 import { useState } from 'react'
+import { LockKeyhole } from 'lucide-react'
 import { useAuthStore } from '../../stores/auth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
 
 export function TwoFactor() {
   const { error, submit2FA } = useAuthStore()
@@ -18,33 +22,34 @@ export function TwoFactor() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="text-center">
-        <div className="text-4xl mb-2">🔐</div>
+      <div className="text-center space-y-1">
+        <div className="flex justify-center mb-2">
+          <LockKeyhole className="w-10 h-10 text-primary" />
+        </div>
         <p className="text-foreground text-sm font-medium">
           Two-Factor Authentication
         </p>
-        <p className="text-muted-foreground text-xs mt-1">
+        <p className="text-muted-foreground text-xs">
           Enter your cloud password
         </p>
       </div>
 
-      <input
+      <Input
         type="password"
         placeholder="Cloud password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
-        className="w-full px-4 py-3 bg-muted text-foreground rounded-lg border border-border focus:border-primary focus:outline-none text-sm"
         autoFocus
       />
 
-      <button
+      <Button
         onClick={() => void handleSubmit()}
         disabled={!password.trim() || isSubmitting}
-        className="w-full py-3 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full"
       >
-        {isSubmitting ? 'Verifying...' : 'Submit'}
-      </button>
+        {isSubmitting ? <Spinner size="sm" /> : 'Submit'}
+      </Button>
 
       {error && (
         <p className="text-destructive text-xs text-center">{error}</p>

@@ -1,3 +1,7 @@
+import { MessageSquare } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useChatsStore } from '../../stores/chats'
 import type { ForumTopic } from '../../types'
 import { Spinner } from '@/components/ui/spinner'
@@ -29,15 +33,16 @@ function TopicItem({ topic }: { topic: ForumTopic }) {
   const setActiveTopic = useChatsStore((s) => s.setActiveTopic)
 
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={() => setActiveTopic(topic.id)}
-      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors text-left"
+      className="w-full h-auto flex items-center gap-3 px-4 py-3 justify-start rounded-none"
     >
       <div
         className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
         style={{ backgroundColor: getTopicColor(topic.iconColor) }}
       >
-        {topic.iconEmojiId ? '💬' : '#'}
+        {topic.iconEmojiId ? <MessageSquare className="w-4 h-4" /> : '#'}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
@@ -57,11 +62,11 @@ function TopicItem({ topic }: { topic: ForumTopic }) {
         )}
       </div>
       {topic.unreadCount > 0 && (
-        <span className="bg-primary text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center shrink-0">
+        <Badge variant="default" className="min-w-[20px] h-5 px-1.5 text-[11px] shrink-0">
           {topic.unreadCount}
-        </span>
+        </Badge>
       )}
-    </button>
+    </Button>
   )
 }
 
@@ -92,12 +97,12 @@ export function ForumTopicsList() {
   })
 
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin">
+    <ScrollArea className="flex-1">
       <div className="divide-y divide-border">
         {sorted.map((topic) => (
           <TopicItem key={topic.id} topic={topic} />
         ))}
       </div>
-    </div>
+    </ScrollArea>
   )
 }

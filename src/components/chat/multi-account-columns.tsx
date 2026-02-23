@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useAuthStore } from '../../stores/auth'
+import { ACCOUNT_COLORS } from '@/lib/constants'
 import { AccountColumn } from './account-column'
 import { ChatSidebar } from './chat-sidebar'
 import type { TelegramAccount } from '../../types'
-
-const COLUMN_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f97316', '#ec4899']
 
 const COLLAPSED_KEY = 'telegram-crm-collapsed-columns'
 
@@ -51,7 +50,7 @@ export function MultiAccountColumns() {
           key={account.id}
           accountId={account.id}
           accountName={account.firstName || account.phone}
-          accountColor={COLUMN_COLORS[index % COLUMN_COLORS.length]!}
+          accountColorClass={ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]!}
           isCollapsed={!!collapsedState[account.id]}
           onToggleCollapse={() => toggleCollapse(account.id)}
         />

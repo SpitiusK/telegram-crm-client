@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
-import type { UserProfile } from '../../types'
+import { X, Bot } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
+import type { UserProfile } from '../../types'
 
 interface UserProfilePanelProps {
   userId: string
@@ -21,20 +25,24 @@ export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
     })
   }, [userId])
 
+  const initials = profile?.firstName
+    ? (profile.firstName[0] ?? '').toUpperCase()
+    : '?'
+
   return (
     <div className="w-[320px] min-w-[320px] bg-popover border-l border-border flex flex-col">
       {/* Header */}
       <div className="h-14 px-4 flex items-center justify-between border-b border-border">
         <h3 className="text-foreground text-sm font-semibold">Profile</h3>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onClose}
           aria-label="Close profile"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="text-muted-foreground hover:text-foreground rounded-full"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          <X className="w-5 h-5" />
+        </Button>
       </div>
 
       {isLoading ? (
@@ -42,22 +50,22 @@ export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
           <Spinner size="lg" />
         </div>
       ) : profile ? (
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
+        <ScrollArea className="flex-1">
           {/* Avatar + Name */}
           <div className="flex flex-col items-center py-6 px-4">
-            {profile.avatar ? (
-              <img src={profile.avatar} alt="" className="w-[120px] h-[120px] rounded-full object-cover mb-4" />
-            ) : (
-              <div className="w-[120px] h-[120px] rounded-full bg-primary flex items-center justify-center text-white text-3xl font-medium mb-4">
-                {(profile.firstName[0] ?? '').toUpperCase()}
-              </div>
-            )}
+            <Avatar className="w-[120px] h-[120px] mb-4">
+              {profile.avatar && <AvatarImage src={profile.avatar} alt={profile.firstName} />}
+              <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-medium">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
             <h2 className="text-foreground text-lg font-semibold">
               {profile.firstName} {profile.lastName}
             </h2>
             {profile.lastSeen && profile.lastSeen !== 'unknown' && (
               <p className="text-muted-foreground text-xs mt-1">
-                {profile.lastSeen === 'online' ? '🟢 online'
+                {profile.lastSeen === 'online' ? <><span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1 align-middle" />online</>
+
                   : profile.lastSeen === 'recently' ? 'last seen recently'
                   : `last seen ${new Date(profile.lastSeen).toLocaleString('ru-RU')}`}
               </p>
@@ -86,11 +94,11 @@ export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
             )}
             {profile.isBot && (
               <div>
-                <p className="text-foreground text-sm">🤖 Bot</p>
+                <p className="text-foreground text-sm flex items-center gap-1"><Bot className="w-4 h-4" /> Bot</p>
               </div>
             )}
           </div>
-        </div>
+        </ScrollArea>
       ) : (
         <div className="flex items-center justify-center py-12">
           <p className="text-muted-foreground text-sm">Profile not available</p>

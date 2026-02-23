@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Play, FileText } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { MessageMedia } from '@/types'
 import { ImageLightbox } from '@/components/chat/image-lightbox'
 import { LazyMedia } from '@/components/chat/lazy-media'
@@ -73,17 +75,9 @@ export function MessageMediaRenderer({ media, isOut }: MessageMediaProps) {
       {media.type === 'videoNote' && !media.url && (
         <div className="w-[240px] h-[240px] rounded-full bg-black/20 flex items-center justify-center">
           <div className="text-center">
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 40 40"
-              className={isOut ? 'text-white/40' : 'text-muted-foreground'}
-            >
-              <circle cx="20" cy="20" r="18" stroke="currentColor" strokeWidth="2" fill="none" />
-              <path d="M16 12v16l12-8z" fill="currentColor" />
-            </svg>
+            <Play className={cn('w-10 h-10', isOut ? 'text-white/40' : 'text-muted-foreground')} />
             {media.duration !== undefined && (
-              <span className={`text-xs ${isOut ? 'text-white/60' : 'text-muted-foreground'}`}>
+              <span className={cn('text-xs', isOut ? 'text-white/60' : 'text-muted-foreground')}>
                 {media.duration}s
               </span>
             )}
@@ -93,7 +87,7 @@ export function MessageMediaRenderer({ media, isOut }: MessageMediaProps) {
 
       {media.type === 'document' && (
         <div className="flex items-center gap-2 bg-black/20 rounded-lg px-3 py-2">
-          <span className="text-2xl">📄</span>
+          <FileText className="w-6 h-6" />
           <div>
             <p className="text-sm truncate">{media.fileName ?? 'Document'}</p>
             {media.size !== undefined && (

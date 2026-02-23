@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import type { SearchResult } from '../../types'
 
 export function formatSearchDate(timestamp: number): string {
@@ -36,16 +38,16 @@ export function SearchResultItem({
 }) {
   const snippet = result.text.length > 80 ? result.text.slice(0, 80) + '...' : result.text
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
-      className="w-full px-3 py-2.5 flex flex-col gap-0.5 text-left hover:bg-accent transition-colors"
+      className="w-full h-auto px-3 py-2.5 flex flex-col gap-0.5 items-stretch justify-start rounded-none"
     >
       <div className="flex items-center justify-between">
         <span className="text-foreground text-sm font-medium truncate flex items-center gap-1.5">
           {accountColor && (
             <span
-              className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: accountColor }}
+              className={cn('inline-block w-2 h-2 rounded-full flex-shrink-0', accountColor)}
             />
           )}
           {result.chatTitle || result.senderName || 'Chat'}
@@ -55,11 +57,11 @@ export function SearchResultItem({
         </span>
       </div>
       {result.chatTitle && result.senderName && (
-        <span className="text-muted-foreground text-xs truncate">{result.senderName}</span>
+        <span className="text-muted-foreground text-xs truncate text-left">{result.senderName}</span>
       )}
-      <span className="text-muted-foreground text-xs truncate">
+      <span className="text-muted-foreground text-xs truncate text-left">
         {highlightMatch(snippet, query)}
       </span>
-    </button>
+    </Button>
   )
 }

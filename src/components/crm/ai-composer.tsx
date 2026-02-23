@@ -1,8 +1,19 @@
 import { useState } from 'react'
+import { Send, Pencil, X, Sparkles, MessageCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import { useChatsStore } from '../../stores/chats'
 import { useCrmStore } from '../../stores/crm'
-import { Spinner } from '@/components/ui/spinner'
 import type { AIMessageSuggestion } from '../../types'
+
+const toneEmoji: Record<string, string> = {
+  professional: '\u{1F454}',
+  friendly: '\u{1F60A}',
+  urgent: '\u{26A1}',
+}
 
 export function AiComposer() {
   const { messages, activeChat, sendMessage } = useChatsStore()
@@ -40,23 +51,18 @@ export function AiComposer() {
     setEditText(text)
   }
 
-  const toneEmoji: Record<string, string> = {
-    professional: '👔',
-    friendly: '😊',
-    urgent: '⚡',
-  }
-
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-foreground text-sm font-medium">AI Composer</h4>
-        <button
+    <div className="p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-foreground text-sm font-semibold">AI Composer</h4>
+        <Button
+          size="sm"
           onClick={() => void handleGenerate()}
           disabled={isGenerating || !activeChat}
-          className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary/80 transition-colors disabled:opacity-50"
+          className="text-xs h-7 px-3"
         >
-          {isGenerating ? 'Generating...' : '✨ Generate'}
-        </button>
+          {isGenerating ? 'Generating...' : <><Sparkles className="w-4 h-4 mr-1" />Generate</>}
+        </Button>
       </div>
 
       {suggestions.length === 0 && !isGenerating && (
@@ -73,44 +79,62 @@ export function AiComposer() {
 
       <div className="space-y-2">
         {suggestions.map((s, i) => (
-          <div
-            key={i}
-            className="bg-background rounded-lg p-3 border border-border"
-          >
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-sm">{toneEmoji[s.tone] ?? '💬'}</span>
-              <span className="text-muted-foreground text-[11px] capitalize">{s.tone}</span>
-              <span className="text-muted-foreground text-[11px] ml-auto">
-                {Math.round(s.confidence * 100)}%
-              </span>
-            </div>
+          <Card key={i}>
+            <CardHeader className="py-2 px-3">
+              <CardTitle className="flex items-center gap-1.5 text-xs font-normal">
+                <span>{toneEmoji[s.tone] ?? <MessageCircle className="w-4 h-4" />}</span>
+                <Badge variant="secondary" className="capitalize text-[10px] font-normal">
+                  {s.tone}
+                </Badge>
+                <span className="text-muted-foreground text-[11px] ml-auto">
+                  {Math.round(s.confidence * 100)}%
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 pb-3 space-y-2">
+              {editingIndex === i ? (
+                <Textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="text-xs resize-none min-h-[60px]"
+                  rows={3}
+                />
+              ) : (
+                <p className="text-foreground text-xs leading-relaxed">{s.text}</p>
+              )}
 
-            {editingIndex === i ? (
-              <textarea
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                className="w-full bg-muted text-foreground text-xs rounded p-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                rows={3}
-              />
-            ) : (
-              <p className="text-foreground text-xs leading-relaxed">{s.text}</p>
-            )}
-
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => handleUse(editingIndex === i ? editText : s.text)}
-                className="flex-1 py-1.5 text-[11px] bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors"
-              >
-                Send
-              </button>
-              <button
-                onClick={() => editingIndex === i ? setEditingIndex(null) : handleEdit(i, s.text)}
-                className="flex-1 py-1.5 text-[11px] bg-border/50 text-muted-foreground rounded hover:bg-border transition-colors"
-              >
-                {editingIndex === i ? 'Cancel' : 'Edit'}
-              </button>
-            </div>
-          </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1 h-7 text-[11px] gap-1"
+                  onClick={() => handleUse(editingIndex === i ? editText : s.text)}
+                >
+                  <Send className="h-3 w-3" />
+                  Send
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 h-7 text-[11px] gap-1"
+                  onClick={() =>
+                    editingIndex === i ? setEditingIndex(null) : handleEdit(i, s.text)
+                  }
+                >
+                  {editingIndex === i ? (
+                    <>
+                      <X className="h-3 w-3" />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Pencil className="h-3 w-3" />
+                      Edit
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

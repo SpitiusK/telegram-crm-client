@@ -1,4 +1,9 @@
 import { useState, useCallback, memo } from 'react'
+import { Pin, VolumeX, Users, Megaphone, MessageSquare, Bookmark } from 'lucide-react'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { useChatsStore } from '../../stores/chats'
 import { useUIStore } from '../../stores/ui'
 import { useCrmStore } from '../../stores/crm'
@@ -43,58 +48,36 @@ function getAvatarColor(id: string): string {
   return avatarColors[Math.abs(hash) % avatarColors.length] ?? 'bg-primary'
 }
 
-function Avatar({ dialog }: { dialog: TelegramDialog }) {
-  // Saved Messages — bookmark icon
+function DialogAvatar({ dialog }: { dialog: TelegramDialog }) {
   if (dialog.isSavedMessages) {
     return (
-      <div className="w-[48px] h-[48px] min-w-[48px] rounded-full bg-primary flex items-center justify-center">
-        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-        </svg>
-      </div>
+      <Avatar className="w-12 h-12">
+        <AvatarFallback className="bg-primary text-primary-foreground">
+          <Bookmark className="w-5 h-5" />
+        </AvatarFallback>
+      </Avatar>
     )
   }
 
-  // Real avatar photo
-  if (dialog.avatar) {
-    return (
-      <img
-        src={dialog.avatar}
-        alt=""
-        className="w-[48px] h-[48px] min-w-[48px] rounded-full object-cover"
-      />
-    )
-  }
-
-  // Initials fallback
   return (
-    <div className={`w-[48px] h-[48px] min-w-[48px] rounded-full flex items-center justify-center text-white text-sm font-medium ${getAvatarColor(dialog.id)}`}>
-      {getInitials(dialog.title)}
-    </div>
+    <Avatar className="w-12 h-12">
+      {dialog.avatar && <AvatarImage src={dialog.avatar} alt={dialog.title} />}
+      <AvatarFallback className={cn('text-white text-sm font-medium', getAvatarColor(dialog.id))}>
+        {getInitials(dialog.title)}
+      </AvatarFallback>
+    </Avatar>
   )
 }
 
 function ChatTypeIcon({ dialog }: { dialog: TelegramDialog }) {
   if (dialog.isGroup) {
-    return (
-      <svg className="w-3.5 h-3.5 text-muted-foreground mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-      </svg>
-    )
+    return <Users className="w-3.5 h-3.5 text-muted-foreground mr-1 flex-shrink-0" />
   }
   if (dialog.isChannel && dialog.isForum) {
-    return (
-      <svg className="w-3.5 h-3.5 text-muted-foreground mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-4H6V8h12v2z" />
-      </svg>
-    )
+    return <MessageSquare className="w-3.5 h-3.5 text-muted-foreground mr-1 flex-shrink-0" />
   }
   if (dialog.isChannel) {
-    return (
-      <svg className="w-3.5 h-3.5 text-muted-foreground mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z" />
-      </svg>
-    )
+    return <Megaphone className="w-3.5 h-3.5 text-muted-foreground mr-1 flex-shrink-0" />
   }
   return null
 }
@@ -129,19 +112,20 @@ export const ChatListItem = memo(function ChatListItem({ dialog, accountColor }:
 
   return (
     <>
-      <button
+      <Button
+        variant="ghost"
         onClick={handleClick}
         onContextMenu={handleContextMenu}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-          isActive ? 'bg-primary/20' : 'hover:bg-accent'
-        }`}
+        className={cn(
+          'w-full h-auto flex items-center gap-3 px-2 py-1.5 justify-start rounded-none',
+          isActive ? 'bg-primary/20' : '',
+        )}
       >
         <div className="relative flex-shrink-0">
-          <Avatar dialog={dialog} />
+          <DialogAvatar dialog={dialog} />
           {accountColor && (
             <span
-              className="absolute top-0 right-0 w-2 h-2 rounded-full ring-2 ring-popover"
-              style={{ backgroundColor: accountColor }}
+              className={cn('absolute top-0 right-0 w-2 h-2 rounded-full ring-2 ring-popover', accountColor)}
             />
           )}
         </div>
@@ -150,47 +134,47 @@ export const ChatListItem = memo(function ChatListItem({ dialog, accountColor }:
           <div className="flex items-center justify-between">
             <div className="flex items-center min-w-0">
               <ChatTypeIcon dialog={dialog} />
-              <span className="text-foreground text-sm font-medium truncate">
+              <span className="text-foreground text-[14px] font-semibold truncate">
                 {dialog.title}
               </span>
             </div>
             <div className="flex items-center gap-1 ml-2">
               {isPinned && (
-                <svg className="w-3 h-3 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
+                <Pin className="w-3 h-3 text-muted-foreground" />
               )}
               {isMuted && (
-                <svg className="w-3 h-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                </svg>
+                <VolumeX className="w-3 h-3 text-muted-foreground" />
               )}
-              <span className="text-muted-foreground text-xs whitespace-nowrap">
+              <span className="text-muted-foreground text-[12px] whitespace-nowrap">
                 {formatTime(dialog.lastMessageDate)}
               </span>
             </div>
           </div>
           <div className="flex items-center justify-between mt-0.5">
             {draft ? (
-              <span className="text-xs truncate">
+              <span className="text-[14px] truncate">
                 <span className="text-destructive font-medium">Draft: </span>
                 <span className="text-muted-foreground">{draft}</span>
               </span>
             ) : (
-              <span className="text-muted-foreground text-xs truncate">
+              <span className="text-muted-foreground text-[14px] truncate">
                 {dialog.lastMessage}
               </span>
             )}
             {dialog.unreadCount > 0 && (
-              <span className={`ml-2 min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-white text-[11px] font-medium ${
-                isMuted ? 'bg-muted-foreground' : 'bg-primary'
-              }`}>
+              <Badge
+                variant="default"
+                className={cn(
+                  'ml-2 min-w-[20px] h-5 px-1.5 text-[11px] font-medium',
+                  isMuted ? 'bg-muted-foreground hover:bg-muted-foreground' : '',
+                )}
+              >
                 {dialog.unreadCount}
-              </span>
+              </Badge>
             )}
           </div>
         </div>
-      </button>
+      </Button>
       {contextMenu && (
         <ChatContextMenu
           dialog={dialog}

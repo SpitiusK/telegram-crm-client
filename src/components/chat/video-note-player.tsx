@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { Play } from 'lucide-react'
 
 interface VideoNotePlayerProps {
   url: string
@@ -35,9 +36,7 @@ export function VideoNotePlayer({ url }: VideoNotePlayerProps) {
       />
       {!playing && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-          <svg width="40" height="40" viewBox="0 0 40 40" className="text-white">
-            <path d="M14 10v20l16-10z" fill="currentColor" />
-          </svg>
+          <Play className="w-10 h-10 text-white" />
         </div>
       )}
     </div>

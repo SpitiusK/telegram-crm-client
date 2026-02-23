@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useCrmStore } from '../../stores/crm'
+import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
+import { cn } from '@/lib/utils'
+import { useCrmStore } from '../../stores/crm'
 import type { BitrixDeal } from '../../types'
 
 interface PipelineStage {
@@ -18,23 +24,31 @@ const STAGES: PipelineStage[] = [
   { id: 'WON', label: 'Оплата', color: 'bg-crm-paid' },
 ]
 
-function DealCard({ deal, onDragStart }: { deal: BitrixDeal; onDragStart: (e: React.DragEvent, deal: BitrixDeal) => void }) {
+function PipelineDealCard({
+  deal,
+  onDragStart,
+}: {
+  deal: BitrixDeal
+  onDragStart: (e: React.DragEvent, deal: BitrixDeal) => void
+}) {
   return (
-    <div
+    <Card
       draggable
       onDragStart={(e) => onDragStart(e, deal)}
-      className="bg-popover rounded-lg p-3 cursor-grab active:cursor-grabbing hover:bg-accent transition-colors border border-border"
+      className="cursor-grab active:cursor-grabbing hover:bg-accent transition-colors"
     >
-      <p className="text-foreground text-sm font-medium truncate">{deal.TITLE}</p>
-      {deal.OPPORTUNITY && Number(deal.OPPORTUNITY) > 0 && (
-        <p className="text-primary text-xs mt-1">
-          {Number(deal.OPPORTUNITY).toLocaleString('ru-RU')} ₽
+      <CardContent className="p-3 space-y-1">
+        <p className="text-foreground text-sm font-medium truncate">{deal.TITLE}</p>
+        {deal.OPPORTUNITY && Number(deal.OPPORTUNITY) > 0 && (
+          <Badge variant="secondary" className="text-xs font-normal text-primary">
+            {Number(deal.OPPORTUNITY).toLocaleString('ru-RU')} ₽
+          </Badge>
+        )}
+        <p className="text-muted-foreground text-[11px]">
+          {new Date(deal.DATE_CREATE).toLocaleDateString('ru-RU')}
         </p>
-      )}
-      <p className="text-muted-foreground text-[11px] mt-1">
-        {new Date(deal.DATE_CREATE).toLocaleDateString('ru-RU')}
-      </p>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -53,9 +67,10 @@ function StageColumn({
 
   return (
     <div
-      className={`flex-1 min-w-[200px] max-w-[280px] flex flex-col rounded-xl transition-colors ${
+      className={cn(
+        'flex-1 min-w-[200px] max-w-[280px] flex flex-col rounded-xl transition-colors',
         isDragOver ? 'bg-primary/10' : 'bg-background'
-      }`}
+      )}
       onDragOver={(e) => {
         e.preventDefault()
         setIsDragOver(true)
@@ -69,20 +84,24 @@ function StageColumn({
     >
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-        <div className={`w-3 h-3 rounded-full ${stage.color}`} />
+        <div className={cn('w-2.5 h-2.5 rounded-full flex-shrink-0', stage.color)} />
         <span className="text-foreground text-xs font-medium truncate">{stage.label}</span>
-        <span className="text-muted-foreground text-[11px] ml-auto">{deals.length}</span>
+        <Badge variant="secondary" className="text-[11px] ml-auto px-1.5 py-0 h-5">
+          {deals.length}
+        </Badge>
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-2">
-        {deals.map((deal) => (
-          <DealCard key={deal.ID} deal={deal} onDragStart={onDragStart} />
-        ))}
-        {deals.length === 0 && (
-          <p className="text-muted-foreground text-xs text-center py-4">No deals</p>
-        )}
-      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-2 space-y-2">
+          {deals.map((deal) => (
+            <PipelineDealCard key={deal.ID} deal={deal} onDragStart={onDragStart} />
+          ))}
+          {deals.length === 0 && (
+            <p className="text-muted-foreground text-xs text-center py-4">No deals</p>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   )
 }
@@ -124,17 +143,20 @@ export function PipelineView() {
         <h2 className="text-foreground text-sm font-semibold">Pipeline</h2>
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-xs">{deals.length} deals</span>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => void loadDeals()}
-            className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent transition-colors"
+            className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
           >
-            ↻ Refresh
-          </button>
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </Button>
         </div>
       </div>
 
       {/* Kanban board */}
-      <div className="flex-1 flex gap-3 p-4 overflow-x-auto scrollbar-thin">
+      <div className="flex-1 flex gap-3 p-4 overflow-x-auto">
         {STAGES.map((stage) => (
           <StageColumn
             key={stage.id}

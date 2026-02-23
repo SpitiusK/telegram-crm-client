@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
+import { cn } from '@/lib/utils'
 import { ActivityLogEntry } from './activity-log-entry'
 import type { ActivityLogEntryData } from './activity-log-entry'
 
 const FILTER_TYPES = [
   { key: 'all', label: 'All' },
-  { key: 'message_sent', label: '💬 Messages' },
-  { key: 'deal_updated', label: '📋 Deals' },
-  { key: 'ai_generated', label: '✨ AI' },
-  { key: 'login', label: '🔑 Auth' },
+  { key: 'message_sent', label: 'Messages' },
+  { key: 'deal_updated', label: 'Deals' },
+  { key: 'ai_generated', label: 'AI' },
+  { key: 'login', label: 'Auth' },
 ] as const
 
 export function ActivityLog() {
@@ -19,9 +22,7 @@ export function ActivityLog() {
   const loadEntries = useCallback(async () => {
     setIsLoading(true)
     try {
-      // Load from SQLite via IPC
       const raw = await window.electronAPI.db.getCachedMessages('__activity_log__')
-      // Parse activity entries from cached format
       const parsed: ActivityLogEntryData[] = raw.map((r) => {
         try {
           const data = JSON.parse(r.text) as {
@@ -72,23 +73,24 @@ export function ActivityLog() {
         <h2 className="text-foreground text-sm font-semibold mb-2">Activity Log</h2>
         <div className="flex gap-1 flex-wrap">
           {FILTER_TYPES.map((f) => (
-            <button
+            <Button
               key={f.key}
+              size="sm"
+              variant={filter === f.key ? 'default' : 'ghost'}
               onClick={() => setFilter(f.key)}
-              className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                filter === f.key
-                  ? 'bg-primary text-white'
-                  : 'bg-background text-muted-foreground hover:text-foreground'
-              }`}
+              className={cn(
+                'h-6 px-2.5 text-xs',
+                filter !== f.key && 'text-muted-foreground hover:text-foreground'
+              )}
             >
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {/* Entries */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <ScrollArea className="flex-1">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Spinner />
@@ -102,7 +104,7 @@ export function ActivityLog() {
             <ActivityLogEntry key={entry.id} entry={entry} />
           ))
         )}
-      </div>
+      </ScrollArea>
     </div>
   )
 }

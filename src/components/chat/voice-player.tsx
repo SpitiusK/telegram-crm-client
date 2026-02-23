@@ -1,4 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
+import { Play, Pause } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -46,24 +49,22 @@ export function VoicePlayer({ waveform, duration, isOut }: VoicePlayerProps) {
 
   return (
     <div className="flex items-center gap-2 min-w-[200px]">
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={togglePlay}
         aria-label={playing ? 'Pause voice message' : 'Play voice message'}
-        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-          isOut ? 'bg-white/20 hover:bg-white/30' : 'bg-primary/20 hover:bg-primary/30'
-        }`}
+        className={cn(
+          'w-8 h-8 rounded-full shrink-0',
+          isOut ? 'bg-white/20 hover:bg-white/30' : 'bg-primary/20 hover:bg-primary/30',
+        )}
       >
         {playing ? (
-          <svg width="12" height="14" viewBox="0 0 12 14" className={isOut ? 'text-white' : 'text-primary'}>
-            <rect x="1" y="1" width="3.5" height="12" rx="1" fill="currentColor" />
-            <rect x="7.5" y="1" width="3.5" height="12" rx="1" fill="currentColor" />
-          </svg>
+          <Pause className={cn('w-3 h-3', isOut ? 'text-white' : 'text-primary')} />
         ) : (
-          <svg width="12" height="14" viewBox="0 0 12 14" className={`ml-0.5 ${isOut ? 'text-white' : 'text-primary'}`}>
-            <path d="M1 1.5v11l10-5.5z" fill="currentColor" />
-          </svg>
+          <Play className={cn('w-3 h-3 ml-0.5', isOut ? 'text-white' : 'text-primary')} />
         )}
-      </button>
+      </Button>
       <div className="flex-1 flex flex-col gap-1">
         <div className="flex items-end gap-px h-5">
           {bars ? (

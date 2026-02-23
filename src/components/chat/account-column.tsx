@@ -1,4 +1,9 @@
 import { useState, useMemo } from 'react'
+import { ChevronsLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 import { useChatsStore } from '../../stores/chats'
 import type { ChatFolder } from '../../stores/chats'
 import type { TelegramDialog } from '../../types'
@@ -36,7 +41,7 @@ function matchesFolder(dialog: TelegramDialog, folder: ChatFolder): boolean {
 interface AccountColumnProps {
   accountId: string
   accountName: string
-  accountColor: string
+  accountColorClass: string
   isCollapsed: boolean
   onToggleCollapse: () => void
 }
@@ -44,7 +49,7 @@ interface AccountColumnProps {
 export function AccountColumn({
   accountId,
   accountName,
-  accountColor,
+  accountColorClass,
   isCollapsed,
   onToggleCollapse,
 }: AccountColumnProps) {
@@ -83,24 +88,24 @@ export function AccountColumn({
   if (isCollapsed) {
     return (
       <div className="w-12 min-w-[48px] bg-popover flex flex-col items-center border-r border-border">
-        <button
+        <Button
+          variant="ghost"
           onClick={onToggleCollapse}
           aria-label={`Expand ${accountName}`}
           title={`Expand ${accountName}`}
-          className="w-full flex flex-col items-center gap-1 py-3 hover:bg-accent transition-colors"
+          className="w-full h-auto flex flex-col items-center gap-1 py-3 rounded-none"
         >
-          <span
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-            style={{ backgroundColor: accountColor }}
-          >
-            {initial}
-          </span>
+          <Avatar className="w-8 h-8">
+            <AvatarFallback className={cn('text-white text-xs font-semibold', accountColorClass)}>
+              {initial}
+            </AvatarFallback>
+          </Avatar>
           {totalUnread > 0 && (
             <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-medium">
               {totalUnread > 99 ? '99+' : totalUnread}
             </span>
           )}
-        </button>
+        </Button>
       </div>
     )
   }
@@ -110,12 +115,11 @@ export function AccountColumn({
     <div className="w-[260px] min-w-[200px] flex-1 max-w-[320px] bg-popover flex flex-col border-r border-border">
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-        <span
-          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
-          style={{ backgroundColor: accountColor }}
-        >
-          {initial}
-        </span>
+        <Avatar className="w-7 h-7 flex-shrink-0">
+          <AvatarFallback className={cn('text-white text-xs font-semibold', accountColorClass)}>
+            {initial}
+          </AvatarFallback>
+        </Avatar>
         <span className="text-foreground text-sm font-medium truncate flex-1">
           {accountName}
         </span>
@@ -124,50 +128,42 @@ export function AccountColumn({
             {totalUnread > 99 ? '99+' : totalUnread}
           </span>
         )}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onToggleCollapse}
           aria-label="Collapse"
           title="Collapse"
-          className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground flex-shrink-0"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-            />
-          </svg>
-        </button>
+          <ChevronsLeft className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* Folder tabs */}
       <div className="flex overflow-x-auto scrollbar-none border-b border-border">
         {BUILTIN_TABS.map((tab) => (
-          <button
+          <Button
             key={tab.key}
+            variant="ghost"
             onClick={() => setActiveFolder(tab.key)}
-            className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors relative ${
+            className={cn(
+              'flex-shrink-0 px-3 py-2 text-xs font-medium h-auto rounded-none relative',
               activeFolder === tab.key
                 ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+                : 'text-muted-foreground hover:text-foreground',
+            )}
           >
             {tab.label}
             {activeFolder === tab.key && (
               <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />
             )}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Dialog list */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <ScrollArea className="flex-1">
         {isLoadingDialogs ? (
           <div className="flex items-center justify-center py-8">
             <Spinner />
@@ -184,7 +180,7 @@ export function AccountColumn({
             />
           ))
         )}
-      </div>
+      </ScrollArea>
     </div>
   )
 }

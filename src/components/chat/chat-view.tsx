@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MessageSquare } from 'lucide-react'
 import { useChatsStore } from '../../stores/chats'
 import { useAuthStore } from '../../stores/auth'
 import { MessageList } from './message-list'
@@ -24,7 +25,7 @@ export function ChatView() {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="text-6xl mb-4">💬</div>
+          <MessageSquare className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground text-lg">Select a chat to start messaging</p>
         </div>
       </div>

@@ -1,4 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useChatsStore } from '../../stores/chats'
 import { MessageBubble } from './message-bubble'
 import { MessageContextMenu } from './message-context-menu'
@@ -201,30 +204,22 @@ export function MessageList() {
       </div>
 
       {showScrollButton && (
-        <button
+        <Button
           onClick={() => scrollToBottom('smooth')}
-          className="absolute bottom-4 right-4 bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center hover:bg-primary/90 transition-opacity z-10"
+          size="icon"
+          className="absolute bottom-4 right-4 shadow-lg rounded-full w-10 h-10 z-10"
           aria-label="Scroll to bottom"
         >
           {newMessageCount > 0 && (
-            <span className="absolute -top-2 -right-1 bg-destructive text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+            <Badge
+              variant="destructive"
+              className="absolute -top-2 -right-1 min-w-[20px] h-5 px-1 text-[11px]"
+            >
               {newMessageCount > 99 ? '99+' : newMessageCount}
-            </span>
+            </Badge>
           )}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
+          <ChevronDown className="w-5 h-5" />
+        </Button>
       )}
 
       {contextMenu && (
