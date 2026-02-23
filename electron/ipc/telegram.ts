@@ -11,6 +11,17 @@ import { getDatabase } from '../database/index'
 const API_ID = 2040
 const API_HASH = 'b18441a1ff607e10a989891a5462e627'
 
+/**
+ * Remove unpaired UTF-16 surrogates that break JSON serialization.
+ * Preserves all valid emoji (which use properly paired surrogates).
+ */
+function sanitizeText(text: string): string {
+  return text.replace(
+    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+    '\uFFFD'
+  )
+}
+
 const CLIENT_OPTIONS = {
   connectionRetries: 5,
   deviceModel: 'Desktop',
@@ -237,7 +248,7 @@ function setupEventHandlers(accountId: string, tc: TelegramClient): void {
       accountId,
       id: msg.id,
       chatId,
-      text: msg.message ?? '',
+      text: sanitizeText(msg.message ?? ''),
       date: msg.date ?? 0,
       out: msg.out ?? false,
       senderName: '',
@@ -262,7 +273,7 @@ function setupEventHandlers(accountId: string, tc: TelegramClient): void {
           // ignore
         }
 
-        const body = msg.message ?? ''
+        const body = sanitizeText(msg.message ?? '')
         const notification = new Notification({
           title: senderName || 'New Message',
           body: body.length > 100 ? body.slice(0, 100) + '...' : body,
@@ -757,9 +768,9 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
 
       return {
         id: entityId,
-        title: isSavedMessages ? 'Saved Messages' : (d.title ?? ''),
+        title: isSavedMessages ? 'Saved Messages' : sanitizeText(d.title ?? ''),
         unreadCount: d.unreadCount ?? 0,
-        lastMessage: d.message?.message ?? '',
+        lastMessage: sanitizeText(d.message?.message ?? ''),
         lastMessageDate: d.message?.date ?? 0,
         isUser: d.isUser,
         isSavedMessages,
@@ -820,9 +831,9 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
 
       return {
         id: entityId,
-        title: isSavedMessages ? 'Saved Messages' : (d.title ?? ''),
+        title: isSavedMessages ? 'Saved Messages' : sanitizeText(d.title ?? ''),
         unreadCount: d.unreadCount ?? 0,
-        lastMessage: d.message?.message ?? '',
+        lastMessage: sanitizeText(d.message?.message ?? ''),
         lastMessageDate: d.message?.date ?? 0,
         isUser: d.isUser,
         isSavedMessages,
@@ -1107,7 +1118,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
               }
               replyToMessage = {
                 id: replied.id,
-                text: replied.message ?? '',
+                text: sanitizeText(replied.message ?? ''),
                 senderName: replySenderName,
               }
             }
@@ -1119,7 +1130,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
         return {
           id: m.id,
           chatId,
-          text: m.message ?? '',
+          text: sanitizeText(m.message ?? ''),
           date: m.date ?? 0,
           out: m.out ?? false,
           senderName,
@@ -1268,11 +1279,11 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
 
         return {
           id: t.id,
-          title: t.title,
+          title: sanitizeText(t.title),
           iconColor: t.iconColor ?? 0,
           iconEmojiId: t.iconEmojiId?.toString(),
           unreadCount: t.unreadCount ?? 0,
-          lastMessage: topicMsg instanceof Api.Message ? (topicMsg.message ?? '') : undefined,
+          lastMessage: topicMsg instanceof Api.Message ? sanitizeText(topicMsg.message ?? '') : undefined,
           lastMessageDate: topicMsg instanceof Api.Message ? topicMsg.date : undefined,
           closed: t.closed ?? false,
           pinned: t.pinned ?? false,
@@ -1377,7 +1388,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
               }
               replyToMessage = {
                 id: replied.id,
-                text: replied.message ?? '',
+                text: sanitizeText(replied.message ?? ''),
                 senderName: replySenderName,
               }
             }
@@ -1389,7 +1400,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
         return {
           id: m.id,
           chatId,
-          text: m.message ?? '',
+          text: sanitizeText(m.message ?? ''),
           date: m.date ?? 0,
           out: m.out ?? false,
           senderName,
@@ -1513,7 +1524,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
           return {
             id: m.id,
             chatId,
-            text: m.message ?? '',
+            text: sanitizeText(m.message ?? ''),
             date: m.date ?? 0,
             out: m.out ?? false,
             senderName,
@@ -1595,7 +1606,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
               id: m.id,
               chatId: msgChatId,
               chatTitle,
-              text: m.message ?? '',
+              text: sanitizeText(m.message ?? ''),
               date: m.date ?? 0,
               out: m.out ?? false,
               senderName,
