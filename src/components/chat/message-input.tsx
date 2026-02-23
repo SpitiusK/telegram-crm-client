@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChatsStore } from '../../stores/chats'
+import { useAuthStore } from '../../stores/auth'
 import { EmojiPicker } from './emoji-picker'
 import { telegramAPI } from '../../lib/telegram'
 
@@ -8,6 +9,10 @@ export function MessageInput() {
     activeChat, sendMessage, sendFile, sendPhoto, replyingTo, editingMessage,
     setReplyingTo, setEditingMessage, saveDraft, getDraft, clearDraft,
   } = useChatsStore()
+  const accounts = useAuthStore((s) => s.accounts)
+  const activeAccount = activeChat
+    ? accounts.find((a) => a.id === activeChat.accountId)
+    : undefined
   const [text, setText] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
@@ -94,7 +99,7 @@ export function MessageInput() {
     // Typing indicator (max once per 5s)
     if (activeChat && Date.now() - lastTypingSent.current > 5000) {
       lastTypingSent.current = Date.now()
-      void telegramAPI.setTyping(activeChat.chatId).catch(() => {/* ignore */})
+      void telegramAPI.setTyping(activeChat.chatId, activeChat.accountId).catch(() => {/* ignore */})
     }
   }, [activeChat, saveDraft])
 
@@ -220,6 +225,15 @@ export function MessageInput() {
   return (
     <div className="border-t border-telegram-border bg-telegram-sidebar p-3">
       <div className="max-w-[700px] mx-auto">
+        {/* Account indicator */}
+        {accounts.length > 1 && activeAccount && (
+          <div className="flex items-center gap-1.5 mb-1 px-1">
+            <span className="text-telegram-text-secondary text-[11px]">
+              Replying as <span className="text-telegram-accent font-medium">{activeAccount.firstName}</span>
+            </span>
+          </div>
+        )}
+
         {/* Sending photo indicator */}
         {sendingPhoto && (
           <div className="flex items-center gap-2 mb-2 px-1">

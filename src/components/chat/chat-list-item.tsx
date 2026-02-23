@@ -7,6 +7,7 @@ import type { TelegramDialog } from '../../types'
 
 interface ChatListItemProps {
   dialog: TelegramDialog
+  accountColor?: string
 }
 
 function formatTime(timestamp: number): string {
@@ -98,7 +99,7 @@ function ChatTypeIcon({ dialog }: { dialog: TelegramDialog }) {
   return null
 }
 
-export const ChatListItem = memo(function ChatListItem({ dialog }: ChatListItemProps) {
+export const ChatListItem = memo(function ChatListItem({ dialog, accountColor }: ChatListItemProps) {
   const { activeChat, setActiveChat, drafts, pinnedChats, mutedChats } = useChatsStore()
   const { toggleCrmPanel } = useUIStore()
   const { findDealByPhone } = useCrmStore()
@@ -135,7 +136,15 @@ export const ChatListItem = memo(function ChatListItem({ dialog }: ChatListItemP
           isActive ? 'bg-telegram-accent/20' : 'hover:bg-telegram-hover'
         }`}
       >
-        <Avatar dialog={dialog} />
+        <div className="relative flex-shrink-0">
+          <Avatar dialog={dialog} />
+          {accountColor && (
+            <span
+              className="absolute top-0 right-0 w-2 h-2 rounded-full ring-2 ring-telegram-sidebar"
+              style={{ backgroundColor: accountColor }}
+            />
+          )}
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
@@ -199,5 +208,6 @@ export const ChatListItem = memo(function ChatListItem({ dialog }: ChatListItemP
     p.lastMessage === n.lastMessage &&
     p.lastMessageDate === n.lastMessageDate &&
     p.unreadCount === n.unreadCount &&
-    p.avatar === n.avatar
+    p.avatar === n.avatar &&
+    prev.accountColor === next.accountColor
 })

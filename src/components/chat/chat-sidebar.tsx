@@ -6,6 +6,17 @@ import type { ChatFolder } from '../../stores/chats'
 import type { TelegramDialog, TelegramAccount, SearchResult } from '../../types'
 import { ChatListItem } from './chat-list-item'
 
+const ACCOUNT_COLORS = [
+  '#3b82f6', // blue
+  '#22c55e', // green
+  '#f59e0b', // amber
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#f97316', // orange
+]
+
 const BUILTIN_TABS: { key: ChatFolder; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'users', label: 'Users' },
@@ -138,7 +149,7 @@ function AccountSwitcher() {
   )
 }
 
-function SearchResultItem({ result, query, onClick }: { result: SearchResult; query: string; onClick: () => void }) {
+function SearchResultItem({ result, query, onClick, accountColor }: { result: SearchResult; query: string; onClick: () => void; accountColor?: string }) {
   const snippet = result.text.length > 80 ? result.text.slice(0, 80) + '...' : result.text
   return (
     <button
@@ -146,7 +157,13 @@ function SearchResultItem({ result, query, onClick }: { result: SearchResult; qu
       className="w-full px-3 py-2.5 flex flex-col gap-0.5 text-left hover:bg-telegram-hover transition-colors"
     >
       <div className="flex items-center justify-between">
-        <span className="text-telegram-text text-sm font-medium truncate">
+        <span className="text-telegram-text text-sm font-medium truncate flex items-center gap-1.5">
+          {accountColor && (
+            <span
+              className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: accountColor }}
+            />
+          )}
           {result.chatTitle || result.senderName || 'Chat'}
         </span>
         <span className="text-telegram-text-secondary text-[10px] flex-shrink-0 ml-2">
@@ -166,6 +183,7 @@ function SearchResultItem({ result, query, onClick }: { result: SearchResult; qu
 export function ChatSidebar() {
   const { dialogs, isLoadingDialogs, activeFolder, setActiveFolder, pinnedChats, searchResults, isSearching, searchMessages, clearSearch, setActiveChat, userFolders, archivedDialogs, isLoadingArchive, loadArchivedDialogs } = useChatsStore()
   const { setShowSettings } = useUIStore()
+  const { accounts } = useAuthStore()
   const [search, setSearch] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
@@ -248,6 +266,15 @@ export function ChatSidebar() {
     })
     return result
   }, [dialogs, archivedDialogs, search, activeFolder, pinnedChats, userFolders])
+
+  const accountColorMap = useMemo(() => {
+    if (accounts.length <= 1) return null
+    const map = new Map<string, string>()
+    accounts.forEach((acc, i) => {
+      map.set(acc.id, ACCOUNT_COLORS[i % ACCOUNT_COLORS.length]!)
+    })
+    return map
+  }, [accounts])
 
   const hasSearchQuery = search.trim().length >= 3
   const showSearchResults = hasSearchQuery && (searchResults.length > 0 || isSearching)
@@ -358,7 +385,11 @@ export function ChatSidebar() {
         ) : (
           <>
             {filtered.map((dialog) => (
-              <ChatListItem key={dialog.id} dialog={dialog} />
+              <ChatListItem
+                key={dialog.id}
+                dialog={dialog}
+                accountColor={accountColorMap && dialog.accountId ? accountColorMap.get(dialog.accountId) : undefined}
+              />
             ))}
 
             {/* Global message search results */}
@@ -379,6 +410,7 @@ export function ChatSidebar() {
                       result={result}
                       query={search}
                       onClick={() => handleResultClick(result)}
+                      accountColor={accountColorMap && result.accountId ? accountColorMap.get(result.accountId) : undefined}
                     />
                   ))
                 )}

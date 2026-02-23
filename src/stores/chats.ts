@@ -164,7 +164,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
 
     set({ isLoadingMoreMessages: true })
     try {
-      const olderMessages = await telegramAPI.getMessages(activeChat.chatId, 50, oldestMsg.id)
+      const olderMessages = await telegramAPI.getMessages(activeChat.chatId, 50, oldestMsg.id, activeChat.accountId)
       set((state) => ({
         messages: [...olderMessages, ...state.messages],
         hasMoreMessages: olderMessages.length >= 50,
@@ -178,7 +178,24 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   searchMessages: async (query: string, chatId?: string) => {
     set({ isSearching: true, searchResults: [] })
     try {
-      const results = await telegramAPI.searchMessages(query, chatId, 20)
+      const accounts = useAuthStore.getState().accounts
+      let results: SearchResult[]
+      if (accounts.length > 1 && !chatId) {
+        // Search all accounts in parallel, tag each result with accountId
+        const perAccount = await Promise.all(
+          accounts.map(async (acc) => {
+            try {
+              const hits = await telegramAPI.searchMessages(query, chatId, 20, acc.id)
+              return hits.map((r) => ({ ...r, accountId: acc.id }))
+            } catch {
+              return [] as SearchResult[]
+            }
+          })
+        )
+        results = perAccount.flat().sort((a, b) => b.date - a.date)
+      } else {
+        results = await telegramAPI.searchMessages(query, chatId, 20)
+      }
       set({ searchResults: results, isSearching: false })
     } catch {
       set({ isSearching: false })
@@ -226,8 +243,10 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   loadDialogs: async () => {
     set({ isLoadingDialogs: true })
     try {
+      const accountId = useAuthStore.getState().activeAccountId
       const dialogs = await telegramAPI.getDialogs(100)
-      set({ dialogs, isLoadingDialogs: false })
+      const tagged = dialogs.map((d) => ({ ...d, accountId }))
+      set({ dialogs: tagged, isLoadingDialogs: false })
     } catch {
       set({ isLoadingDialogs: false })
     }
@@ -259,20 +278,22 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       ?? get().archivedDialogs.find((d) => d.id === chatId)
     if (dialog?.isForum) {
       // Forum group: load topics instead of messages
-      set({ activeChat: { accountId: useAuthStore.getState().activeAccountId, chatId }, activeTopic: null, forumTopics: [], messages: [], isLoadingTopics: true, isLoadingMessages: false })
+      const accountId = useAuthStore.getState().activeAccountId
+      set({ activeChat: { accountId, chatId }, activeTopic: null, forumTopics: [], messages: [], isLoadingTopics: true, isLoadingMessages: false })
       try {
-        const topics = await telegramAPI.getForumTopics(chatId)
+        const topics = await telegramAPI.getForumTopics(chatId, accountId)
         set({ forumTopics: topics, isLoadingTopics: false })
       } catch {
         set({ isLoadingTopics: false })
       }
     } else {
       // Regular chat: load messages
-      set({ activeChat: { accountId: useAuthStore.getState().activeAccountId, chatId }, activeTopic: null, forumTopics: [], isLoadingMessages: true, messages: [], hasMoreMessages: true })
+      const accountId = useAuthStore.getState().activeAccountId
+      set({ activeChat: { accountId, chatId }, activeTopic: null, forumTopics: [], isLoadingMessages: true, messages: [], hasMoreMessages: true })
       try {
-        const messages = await telegramAPI.getMessages(chatId, 50)
+        const messages = await telegramAPI.getMessages(chatId, 50, undefined, accountId)
         set({ messages, isLoadingMessages: false, hasMoreMessages: messages.length >= 50 })
-        void telegramAPI.markRead(chatId)
+        void telegramAPI.markRead(chatId, accountId)
         set((state) => ({
           dialogs: state.dialogs.map((d) =>
             d.id === chatId ? { ...d, unreadCount: 0 } : d
@@ -289,7 +310,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     if (!activeChat) return
     set({ activeTopic: topicId, isLoadingMessages: true, messages: [], hasMoreMessages: true })
     try {
-      const messages = await telegramAPI.getTopicMessages(activeChat.chatId, topicId, 50)
+      const messages = await telegramAPI.getTopicMessages(activeChat.chatId, topicId, 50, activeChat.accountId)
       set({ messages, isLoadingMessages: false, hasMoreMessages: messages.length >= 50 })
     } catch {
       set({ isLoadingMessages: false })

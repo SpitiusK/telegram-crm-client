@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChatsStore } from '../../stores/chats'
+import { useAuthStore } from '../../stores/auth'
 import { telegramAPI } from '../../lib/telegram'
 import type { SearchResult } from '../../types'
 import { MessageList } from './message-list'
@@ -18,6 +19,10 @@ function formatResultDate(timestamp: number): string {
 
 export function ChatView() {
   const { activeChat, dialogs, activeTopic, forumTopics, clearActiveTopic, typingUsers } = useChatsStore()
+  const accounts = useAuthStore((s) => s.accounts)
+  const activeAccount = activeChat
+    ? accounts.find((a) => a.id === activeChat.accountId)
+    : undefined
   const [showProfile, setShowProfile] = useState(false)
   const [showChatSearch, setShowChatSearch] = useState(false)
   const [chatSearchQuery, setChatSearchQuery] = useState('')
@@ -50,7 +55,7 @@ export function ChatView() {
     }
     setIsChatSearching(true)
     try {
-      const results = await telegramAPI.searchMessages(query.trim(), activeChat.chatId, 20)
+      const results = await telegramAPI.searchMessages(query.trim(), activeChat.chatId, 20, activeChat.accountId)
       setChatSearchResults(results)
     } catch {
       setChatSearchResults([])
@@ -125,11 +130,18 @@ export function ChatView() {
               <img src={currentDialog.avatar} alt="" className="w-9 h-9 rounded-full object-cover mr-3" />
             ) : null}
             <div className="min-w-0">
-              <h2 className="text-telegram-text text-sm font-semibold truncate">
-                {currentDialog?.isForum && activeTopic !== null
-                  ? forumTopics.find((t) => t.id === activeTopic)?.title ?? 'Topic'
-                  : currentDialog?.title ?? 'Chat'}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-telegram-text text-sm font-semibold truncate">
+                  {currentDialog?.isForum && activeTopic !== null
+                    ? forumTopics.find((t) => t.id === activeTopic)?.title ?? 'Topic'
+                    : currentDialog?.title ?? 'Chat'}
+                </h2>
+                {accounts.length > 1 && activeAccount && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-telegram-accent/15 text-telegram-accent shrink-0">
+                    {activeAccount.firstName}
+                  </span>
+                )}
+              </div>
               <p className="text-telegram-text-secondary text-xs">
                 {isTyping ? (
                   <span className="text-telegram-accent">
