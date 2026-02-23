@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { MessageSquare } from 'lucide-react'
 import { useChatsStore } from '../../stores/chats'
 import { useAuthStore } from '../../stores/auth'
+import { ACCOUNT_TEXT_COLORS, ACCOUNT_BG_LIGHT_COLORS } from '@/lib/constants'
 import { MessageList } from './message-list'
 import { MessageInput } from './message-input'
 import { UserProfilePanel } from './user-profile-panel'
@@ -14,6 +15,15 @@ export function ChatView() {
   const accounts = useAuthStore((s) => s.accounts)
   const activeAccount = activeChat
     ? accounts.find((a) => a.id === activeChat.accountId)
+    : undefined
+  const accountIndex = activeAccount
+    ? accounts.findIndex((a) => a.id === activeAccount.id)
+    : -1
+  const accountBadgeBg = accountIndex >= 0
+    ? ACCOUNT_BG_LIGHT_COLORS[accountIndex % ACCOUNT_BG_LIGHT_COLORS.length]
+    : undefined
+  const accountBadgeText = accountIndex >= 0
+    ? ACCOUNT_TEXT_COLORS[accountIndex % ACCOUNT_TEXT_COLORS.length]
     : undefined
   const [showProfile, setShowProfile] = useState(false)
   const [showChatSearch, setShowChatSearch] = useState(false)
@@ -62,6 +72,8 @@ export function ChatView() {
           forumTopics={forumTopics}
           isTyping={isTyping}
           showChatSearch={showChatSearch}
+          accountBadgeBg={accountBadgeBg}
+          accountBadgeText={accountBadgeText}
           onBackToTopics={clearActiveTopic}
           onToggleProfile={() => setShowProfile((prev) => !prev)}
           onToggleChatSearch={handleToggleChatSearch}

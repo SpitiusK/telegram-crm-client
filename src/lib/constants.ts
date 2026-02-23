@@ -23,3 +23,25 @@ export const ACCOUNT_RING_COLORS = [
   'ring-account-7',
   'ring-account-8',
 ] as const
+
+export const ACCOUNT_TEXT_COLORS = [
+  'text-account-1',
+  'text-account-2',
+  'text-account-3',
+  'text-account-4',
+  'text-account-5',
+  'text-account-6',
+  'text-account-7',
+  'text-account-8',
+] as const
+
+export const ACCOUNT_BG_LIGHT_COLORS = [
+  'bg-account-1/15',
+  'bg-account-2/15',
+  'bg-account-3/15',
+  'bg-account-4/15',
+  'bg-account-5/15',
+  'bg-account-6/15',
+  'bg-account-7/15',
+  'bg-account-8/15',
+] as const

@@ -12,6 +12,8 @@ interface ChatHeaderProps {
   forumTopics: ForumTopic[]
   isTyping: boolean
   showChatSearch: boolean
+  accountBadgeBg?: string
+  accountBadgeText?: string
   onBackToTopics: () => void
   onToggleProfile: () => void
   onToggleChatSearch: () => void
@@ -25,6 +27,8 @@ export function ChatHeader({
   forumTopics,
   isTyping,
   showChatSearch,
+  accountBadgeBg,
+  accountBadgeText,
   onBackToTopics,
   onToggleProfile,
   onToggleChatSearch,
@@ -66,7 +70,11 @@ export function ChatHeader({
                 : dialog?.title ?? 'Chat'}
             </h2>
             {multiAccount && activeAccount && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary shrink-0">
+              <span className={cn(
+                'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0',
+                accountBadgeBg ?? 'bg-primary/15',
+                accountBadgeText ?? 'text-primary',
+              )}>
                 {activeAccount.firstName}
               </span>
             )}
