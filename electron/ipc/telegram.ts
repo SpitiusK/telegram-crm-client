@@ -1135,7 +1135,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
       })
     )
 
-    return result
+    return result.reverse()
   })
 
   ipcMain.handle('telegram:sendMessage', async (_event, accountId: string | undefined, chatId: string, text: string, replyTo?: number) => {
@@ -1302,7 +1302,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
 
     const senderCache = new Map<string, string>()
 
-    return Promise.all(
+    const mapped = await Promise.all(
       topicMessages.map(async (m) => {
         let senderName = ''
         const sid = m.senderId?.toString() ?? ''
@@ -1402,6 +1402,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
         }
       })
     )
+    return mapped.reverse()
   })
 
   ipcMain.handle('telegram:sendTopicMessage', async (_event, accountId: string | undefined, chatId: string, topicId: number, text: string) => {
