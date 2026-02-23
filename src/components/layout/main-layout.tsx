@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { telegramAPI } from '../../lib/telegram'
 import { useChatsStore } from '../../stores/chats'
 import { useUIStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
@@ -38,7 +39,7 @@ export function MainLayout() {
 
   useEffect(() => {
     if (accounts.length > 1) {
-      void loadAllAccountDialogs()
+      void telegramAPI.connectAll().then(() => loadAllAccountDialogs())
     } else {
       void loadDialogs()
     }

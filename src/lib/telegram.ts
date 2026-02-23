@@ -38,6 +38,7 @@ export const telegramAPI = {
   addAccount: (): Promise<void> => api().addAccount(),
   removeAccount: (accountId: string): Promise<void> => api().removeAccount(accountId),
   cancelAddAccount: (): Promise<void> => api().cancelAddAccount(),
+  connectAll: (): Promise<Array<{ accountId: string; connected: boolean; error?: string }>> => api().connectAll(),
   // Event listeners
   onNotificationClick: (cb: (chatId: string) => void) => api().onNotificationClick(cb),
   onUpdate: (cb: (event: string, data: unknown) => void) => api().onUpdate(cb),

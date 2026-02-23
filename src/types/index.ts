@@ -209,6 +209,7 @@ export interface ElectronAPI {
     addAccount: () => Promise<void>
     removeAccount: (accountId: string) => Promise<void>
     cancelAddAccount: () => Promise<void>
+    connectAll: () => Promise<Array<{ accountId: string; connected: boolean; error?: string }>>
     // Event listeners
     onNotificationClick: (callback: (chatId: string) => void) => () => void
     onUpdate: (callback: (event: string, data: unknown) => void) => () => void

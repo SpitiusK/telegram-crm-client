@@ -34,6 +34,7 @@ const api = {
     addAccount: () => ipcRenderer.invoke('telegram:addAccount'),
     removeAccount: (accountId: string) => ipcRenderer.invoke('telegram:removeAccount', accountId),
     cancelAddAccount: () => ipcRenderer.invoke('telegram:cancelAddAccount'),
+    connectAll: () => ipcRenderer.invoke('telegram:connectAll'),
     getDialogFilters: (accountId?: string) => ipcRenderer.invoke('telegram:getDialogFilters', accountId),
     getArchivedDialogs: (limit?: number, accountId?: string) => ipcRenderer.invoke('telegram:getArchivedDialogs', accountId, limit),
     onNotificationClick: (callback: (chatId: string) => void) => {

@@ -115,7 +115,7 @@ interface ChatsState {
   saveDraft: (chatId: string, text: string) => void
   getDraft: (chatId: string) => string
   clearDraft: (chatId: string) => void
-  addTypingUser: (chatId: string, userId: string) => void
+  addTypingUser: (chatId: string, userId: string, accountId?: string) => void
   setupRealtimeUpdates: () => () => void
 }
 
@@ -313,9 +313,19 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   setActiveChat: async (chatId: string) => {
     const dialog = get().dialogs.find((d) => d.id === chatId)
       ?? get().archivedDialogs.find((d) => d.id === chatId)
+
+    // Resolve accountId from the dialog's owning account, not the active account
+    let accountId = useAuthStore.getState().activeAccountId
+    const { accountStates } = get()
+    for (const [acctId, acctState] of Object.entries(accountStates)) {
+      if (acctState.dialogs.some((d) => d.id === chatId)) {
+        accountId = acctId
+        break
+      }
+    }
+
     if (dialog?.isForum) {
       // Forum group: load topics instead of messages
-      const accountId = useAuthStore.getState().activeAccountId
       set({ activeChat: { accountId, chatId }, activeTopic: null, forumTopics: [], messages: [], isLoadingTopics: true, isLoadingMessages: false })
       try {
         const topics = await telegramAPI.getForumTopics(chatId, accountId)
@@ -325,11 +335,24 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       }
     } else {
       // Regular chat: load messages
-      const accountId = useAuthStore.getState().activeAccountId
       set({ activeChat: { accountId, chatId }, activeTopic: null, forumTopics: [], isLoadingMessages: true, messages: [], hasMoreMessages: true })
       try {
         const messages = await telegramAPI.getMessages(chatId, 50, undefined, accountId)
-        set({ messages, isLoadingMessages: false, hasMoreMessages: messages.length >= 50 })
+        set((state) => ({
+          messages,
+          isLoadingMessages: false,
+          hasMoreMessages: messages.length >= 50,
+          accountStates: {
+            ...state.accountStates,
+            [accountId]: {
+              ...(state.accountStates[accountId] ?? emptyAccountState()),
+              messages: {
+                ...(state.accountStates[accountId]?.messages ?? {}),
+                [chatId]: messages,
+              },
+            },
+          },
+        }))
         void telegramAPI.markRead(chatId, accountId)
         set((state) => ({
           dialogs: state.dialogs.map((d) =>
@@ -370,8 +393,8 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
 
     const replyToId = replyingTo?.id
     const result = activeTopic !== null
-      ? await telegramAPI.sendTopicMessage(activeChat.chatId, activeTopic, text)
-      : await telegramAPI.sendMessage(activeChat.chatId, text, replyToId)
+      ? await telegramAPI.sendTopicMessage(activeChat.chatId, activeTopic, text, activeChat.accountId)
+      : await telegramAPI.sendMessage(activeChat.chatId, text, replyToId, activeChat.accountId)
 
     // Optimistically add to messages
     const newMsg: TelegramMessage = {
@@ -387,14 +410,29 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
         replyToMessage: { id: replyingTo.id, text: replyingTo.text, senderName: replyingTo.senderName },
       } : {}),
     }
-    set((state) => ({ messages: [...state.messages, newMsg], replyingTo: null }))
+    set((state) => {
+      const acctId = activeChat.accountId
+      const acctState = state.accountStates[acctId] ?? emptyAccountState()
+      const chatMsgs = acctState.messages[activeChat.chatId] ?? []
+      return {
+        messages: [...state.messages, newMsg],
+        replyingTo: null,
+        accountStates: {
+          ...state.accountStates,
+          [acctId]: {
+            ...acctState,
+            messages: { ...acctState.messages, [activeChat.chatId]: [...chatMsgs, newMsg] },
+          },
+        },
+      }
+    })
   },
 
   sendFile: async (filePath: string) => {
     const { activeChat, replyingTo } = get()
     if (!activeChat) return
     const replyToId = replyingTo?.id
-    await telegramAPI.sendFile(activeChat.chatId, filePath, undefined, replyToId)
+    await telegramAPI.sendFile(activeChat.chatId, filePath, undefined, replyToId, activeChat.accountId)
     set({ replyingTo: null })
   },
 
@@ -402,7 +440,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     const { activeChat, replyingTo } = get()
     if (!activeChat) return
     const replyToId = replyingTo?.id
-    await telegramAPI.sendPhoto(activeChat.chatId, base64Data, undefined, replyToId)
+    await telegramAPI.sendPhoto(activeChat.chatId, base64Data, undefined, replyToId, activeChat.accountId)
     set({ replyingTo: null })
   },
 
@@ -463,14 +501,32 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     })
   },
 
-  addTypingUser: (chatId: string, userId: string) => {
+  addTypingUser: (chatId: string, userId: string, accountId?: string) => {
+    const entry: TypingEntry = { userId, timestamp: Date.now() }
     set((state) => {
       const existing = state.typingUsers[chatId] ?? []
       const filtered = existing.filter((e) => e.userId !== userId)
-      return {
+      const nextFlat = {
         typingUsers: {
           ...state.typingUsers,
-          [chatId]: [...filtered, { userId, timestamp: Date.now() }],
+          [chatId]: [...filtered, entry],
+        },
+      }
+      if (!accountId) return nextFlat
+      const acctState = state.accountStates[accountId] ?? emptyAccountState()
+      const acctExisting = acctState.typingUsers[chatId] ?? []
+      const acctFiltered = acctExisting.filter((e) => e.userId !== userId)
+      return {
+        ...nextFlat,
+        accountStates: {
+          ...state.accountStates,
+          [accountId]: {
+            ...acctState,
+            typingUsers: {
+              ...acctState.typingUsers,
+              [chatId]: [...acctFiltered, entry],
+            },
+          },
         },
       }
     })
@@ -481,12 +537,28 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
         if (!entries) return state
         const now = Date.now()
         const filtered = entries.filter((e) => now - e.timestamp < 5000)
-        return {
+        const result: Partial<ChatsState> = {
           typingUsers: {
             ...state.typingUsers,
             [chatId]: filtered,
           },
         }
+        if (accountId) {
+          const acctState = state.accountStates[accountId] ?? emptyAccountState()
+          const acctEntries = acctState.typingUsers[chatId] ?? []
+          const acctFiltered = acctEntries.filter((e) => now - e.timestamp < 5000)
+          result.accountStates = {
+            ...state.accountStates,
+            [accountId]: {
+              ...acctState,
+              typingUsers: {
+                ...acctState.typingUsers,
+                [chatId]: acctFiltered,
+              },
+            },
+          }
+        }
+        return result
       })
     }, 5500)
   },
@@ -510,6 +582,24 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
           set((state) => ({ messages: [...state.messages, msg] }))
           // Mark as read immediately
           void telegramAPI.markRead(activeChat.chatId)
+        }
+
+        // Also store in accountStates messages
+        const msgAcctId = msg.accountId
+        if (msgAcctId) {
+          set((state) => {
+            const acctState = state.accountStates[msgAcctId] ?? emptyAccountState()
+            const chatMsgs = acctState.messages[msg.chatId] ?? []
+            return {
+              accountStates: {
+                ...state.accountStates,
+                [msgAcctId]: {
+                  ...acctState,
+                  messages: { ...acctState.messages, [msg.chatId]: [...chatMsgs, msg] },
+                },
+              },
+            }
+          })
         }
 
         // Update dialog list: move chat to top, update preview
@@ -549,8 +639,8 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       }
 
       if (event === 'typing') {
-        const { chatId, userId } = data as { chatId: string; userId: string }
-        get().addTypingUser(chatId, userId)
+        const { chatId, userId, accountId: typingAccountId } = data as { chatId: string; userId: string; accountId?: string }
+        get().addTypingUser(chatId, userId, typingAccountId)
       }
     })
     return () => {
