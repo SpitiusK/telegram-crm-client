@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react'
 import { ChevronsLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { BUILTIN_TABS, matchesFolder } from '@/lib/chat-folders'
 import type { ChatFolder } from '@/lib/chat-folders'
 import { useChatsStore } from '../../stores/chats'
-import type { SearchResult } from '../../types'
+import type { TelegramDialog, SearchResult } from '../../types'
 import { ChatListItem } from './chat-list-item'
 import { SearchResultItem } from './search-results'
 import { Spinner } from '@/components/ui/spinner'
@@ -15,6 +15,7 @@ import { Spinner } from '@/components/ui/spinner'
 interface AccountColumnProps {
   accountId: string
   accountName: string
+  avatar?: string
   accountColorClass: string
   accountRingColorClass?: string
   isCollapsed: boolean
@@ -22,11 +23,14 @@ interface AccountColumnProps {
   searchResults?: SearchResult[]
   isSearching?: boolean
   searchQuery?: string
+  contactResults?: TelegramDialog[]
+  isSearchingContacts?: boolean
 }
 
 export function AccountColumn({
   accountId,
   accountName,
+  avatar,
   accountColorClass,
   accountRingColorClass,
   isCollapsed,
@@ -34,6 +38,8 @@ export function AccountColumn({
   searchResults,
   isSearching: isSearchingProp,
   searchQuery,
+  contactResults,
+  isSearchingContacts: isSearchingContactsProp,
 }: AccountColumnProps) {
   const [activeFolder, setActiveFolder] = useState<ChatFolder>('all')
 
@@ -85,6 +91,7 @@ export function AccountColumn({
           className="w-full h-auto flex flex-col items-center gap-1 py-3 rounded-none"
         >
           <Avatar className={cn('w-8 h-8', accountRingColorClass && `ring-2 ${accountRingColorClass}`)}>
+            {avatar && <AvatarImage src={avatar} alt={accountName} />}
             <AvatarFallback className={cn('text-white text-xs font-semibold', accountColorClass)}>
               {initial}
             </AvatarFallback>
@@ -109,6 +116,7 @@ export function AccountColumn({
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
         <Avatar className={cn('w-7 h-7 flex-shrink-0', accountRingColorClass && `ring-2 ${accountRingColorClass}`)}>
+          {avatar && <AvatarImage src={avatar} alt={accountName} />}
           <AvatarFallback className={cn('text-white text-xs font-semibold', accountColorClass)}>
             {initial}
           </AvatarFallback>
@@ -160,15 +168,36 @@ export function AccountColumn({
       {/* Dialog list or search results */}
       <ScrollArea className="flex-1">
         {searchResults ? (
-          isSearchingProp ? (
-            <div className="flex items-center justify-center py-8"><Spinner size="sm" /></div>
-          ) : searchResults.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">No results</div>
-          ) : (
-            searchResults.map((r) => (
-              <SearchResultItem key={`${r.chatId}-${r.id}`} result={r} query={searchQuery ?? ''} onClick={() => void setActiveChat(r.chatId)} />
-            ))
-          )
+          <>
+            {/* People & Groups */}
+            {isSearchingContactsProp ? (
+              <div className="flex items-center justify-center py-4"><Spinner size="sm" /></div>
+            ) : contactResults && contactResults.length > 0 ? (
+              <>
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  People &amp; Groups
+                </div>
+                {contactResults.map((contact) => (
+                  <ChatListItem key={contact.id} dialog={contact} />
+                ))}
+              </>
+            ) : null}
+            {/* Messages */}
+            {isSearchingProp ? (
+              <div className="flex items-center justify-center py-4"><Spinner size="sm" /></div>
+            ) : searchResults.length === 0 && (!contactResults || contactResults.length === 0) ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">No results</div>
+            ) : searchResults.length > 0 ? (
+              <>
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Messages
+                </div>
+                {searchResults.map((r) => (
+                  <SearchResultItem key={`${r.chatId}-${r.id}`} result={r} query={searchQuery ?? ''} onClick={() => void setActiveChat(r.chatId)} />
+                ))}
+              </>
+            ) : null}
+          </>
         ) : isLoadingDialogs ? (
           <div className="flex items-center justify-center py-8"><Spinner /></div>
         ) : filtered.length === 0 ? (

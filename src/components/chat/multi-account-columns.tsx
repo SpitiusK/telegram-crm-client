@@ -7,7 +7,7 @@ import { useChatsStore } from '../../stores/chats'
 import { ACCOUNT_COLORS, ACCOUNT_RING_COLORS } from '@/lib/constants'
 import { AccountColumn } from './account-column'
 import { ChatSidebar } from './chat-sidebar'
-import type { TelegramAccount, SearchResult } from '../../types'
+import type { TelegramAccount, TelegramDialog, SearchResult } from '../../types'
 
 const COLLAPSED_KEY = 'telegram-crm-collapsed-columns'
 
@@ -32,7 +32,8 @@ function persistCollapsedState(state: Record<string, boolean>): void {
 
 export function MultiAccountColumns() {
   const { accounts } = useAuthStore()
-  const { searchResults, isSearching, searchMessages, clearSearch } = useChatsStore()
+  const { searchResults, isSearching, searchMessages, clearSearch,
+          contactSearchResults, isSearchingContacts, searchContacts } = useChatsStore()
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(loadCollapsedState)
   const [search, setSearch] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
@@ -41,10 +42,11 @@ export function MultiAccountColumns() {
   const triggerSearch = useCallback((query: string) => {
     if (query.trim().length >= 3) {
       void searchMessages(query.trim())
+      void searchContacts(query.trim())
     } else {
       clearSearch()
     }
-  }, [searchMessages, clearSearch])
+  }, [searchMessages, searchContacts, clearSearch])
 
   useEffect(() => {
     if (!isMulti) return
@@ -62,6 +64,14 @@ export function MultiAccountColumns() {
       return acc
     }, {})
   }, [hasSearchQuery, isMulti, accounts, searchResults])
+
+  const contactsByAccount = useMemo(() => {
+    if (!hasSearchQuery || !isMulti) return null
+    return accounts.reduce<Record<string, TelegramDialog[]>>((acc, account) => {
+      acc[account.id] = contactSearchResults.filter((c) => c.accountId === account.id)
+      return acc
+    }, {})
+  }, [hasSearchQuery, isMulti, accounts, contactSearchResults])
 
   // If only 1 account (or none), just render ChatSidebar
   if (!isMulti) {
@@ -127,6 +137,7 @@ export function MultiAccountColumns() {
               key={account.id}
               accountId={account.id}
               accountName={account.firstName || account.phone}
+              avatar={account.avatar}
               accountColorClass={colorClass}
               accountRingColorClass={ringClass}
               isCollapsed={!!collapsedState[account.id]}
@@ -134,6 +145,8 @@ export function MultiAccountColumns() {
               searchResults={resultsByAccount ? resultsByAccount[account.id] : undefined}
               isSearching={hasSearchQuery ? isSearching : undefined}
               searchQuery={hasSearchQuery ? search : undefined}
+              contactResults={contactsByAccount ? contactsByAccount[account.id] : undefined}
+              isSearchingContacts={hasSearchQuery ? isSearchingContacts : undefined}
             />
           )
         })}
