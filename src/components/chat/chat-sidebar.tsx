@@ -40,6 +40,7 @@ export function ChatSidebar({ width }: ChatSidebarProps) {
   const {
     dialogs, isLoadingDialogs, activeFolder, setActiveFolder, pinnedChats,
     searchResults, isSearching, searchMessages, clearSearch, setActiveChat,
+    contactSearchResults, isSearchingContacts, searchContacts,
     userFolders, archivedDialogs, isLoadingArchive, loadArchivedDialogs,
   } = useChatsStore()
   const { setShowSettings } = useUIStore()
@@ -50,10 +51,11 @@ export function ChatSidebar({ width }: ChatSidebarProps) {
   const triggerSearch = useCallback((query: string) => {
     if (query.trim().length >= 3) {
       void searchMessages(query.trim())
+      void searchContacts(query.trim())
     } else {
       clearSearch()
     }
-  }, [searchMessages, clearSearch])
+  }, [searchMessages, searchContacts, clearSearch])
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -126,7 +128,13 @@ export function ChatSidebar({ width }: ChatSidebarProps) {
     return { bgMap, ringMap }
   }, [accounts])
 
+  const deduplicatedContacts = useMemo(() => {
+    const dialogIds = new Set(filtered.map((d) => d.id))
+    return contactSearchResults.filter((c) => !dialogIds.has(c.id))
+  }, [contactSearchResults, filtered])
+
   const hasSearchQuery = search.trim().length >= 3
+  const showContactResults = hasSearchQuery && (deduplicatedContacts.length > 0 || isSearchingContacts)
   const showSearchResults = hasSearchQuery && (searchResults.length > 0 || isSearching)
 
   return (
@@ -189,6 +197,21 @@ export function ChatSidebar({ width }: ChatSidebarProps) {
             {filtered.map((dialog) => (
               <ChatListItem key={dialog.id} dialog={dialog} accountColor={accountColorMap && dialog.accountId ? accountColorMap.bgMap.get(dialog.accountId) : undefined} accountRingColor={accountColorMap && dialog.accountId ? accountColorMap.ringMap.get(dialog.accountId) : undefined} />
             ))}
+            {showContactResults && (
+              <div className="border-t border-border">
+                <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">People & Groups</div>
+                {isSearchingContacts ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Spinner size="sm" />
+                    <span className="ml-2 text-muted-foreground text-xs">Searching...</span>
+                  </div>
+                ) : (
+                  deduplicatedContacts.map((contact) => (
+                    <ChatListItem key={`contact-${contact.id}`} dialog={contact} accountColor={accountColorMap && contact.accountId ? accountColorMap.bgMap.get(contact.accountId) : undefined} accountRingColor={accountColorMap && contact.accountId ? accountColorMap.ringMap.get(contact.accountId) : undefined} />
+                  ))
+                )}
+              </div>
+            )}
             {showSearchResults && (
               <div className="border-t border-border">
                 <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Messages</div>

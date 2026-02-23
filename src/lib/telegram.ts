@@ -20,6 +20,7 @@ export const telegramAPI = {
   sendFile: (chatId: string, filePath: string, caption?: string, replyTo?: number, accountId?: string): Promise<SendMessageResult> => api().sendFile(chatId, filePath, caption, replyTo, accountId),
   sendPhoto: (chatId: string, base64Data: string, caption?: string, replyTo?: number, accountId?: string): Promise<SendMessageResult> => api().sendPhoto(chatId, base64Data, caption, replyTo, accountId),
   searchMessages: (query: string, chatId?: string, limit?: number, accountId?: string): Promise<SearchResult[]> => api().searchMessages(query, chatId, limit, accountId),
+  searchContacts: (query: string, limit?: number, accountId?: string): Promise<TelegramDialog[]> => api().searchContacts(query, limit, accountId),
   setTyping: (chatId: string, accountId?: string): Promise<void> => api().setTyping(chatId, accountId),
   editMessage: (chatId: string, messageId: number, text: string, accountId?: string): Promise<void> => api().editMessage(chatId, messageId, text, accountId),
   deleteMessages: (chatId: string, messageIds: number[], revoke?: boolean, accountId?: string): Promise<void> => api().deleteMessages(chatId, messageIds, revoke, accountId),

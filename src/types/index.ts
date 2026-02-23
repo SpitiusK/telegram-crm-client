@@ -221,6 +221,7 @@ export interface ElectronAPI {
     sendPhoto: (chatId: string, base64Data: string, caption?: string, replyTo?: number, accountId?: string) => Promise<SendMessageResult>
     setTyping: (chatId: string, accountId?: string) => Promise<void>
     searchMessages: (query: string, chatId?: string, limit?: number, accountId?: string) => Promise<SearchResult[]>
+    searchContacts: (query: string, limit?: number, accountId?: string) => Promise<TelegramDialog[]>
     editMessage: (chatId: string, messageId: number, text: string, accountId?: string) => Promise<void>
     deleteMessages: (chatId: string, messageIds: number[], revoke?: boolean, accountId?: string) => Promise<void>
     markRead: (chatId: string, accountId?: string) => Promise<void>

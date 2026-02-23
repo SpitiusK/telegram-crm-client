@@ -1605,6 +1605,101 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
+  ipcMain.handle('telegram:searchContacts', async (_event, accountId: string | undefined, query: string, limit = 20) => {
+    const tc = getClientForAccount(accountId)
+
+    const result = await tc.invoke(
+      new Api.contacts.Search({
+        q: query,
+        limit,
+      })
+    )
+
+    const me = await tc.getMe()
+    const myId = me instanceof Api.User ? me.id.toString() : ''
+
+    const dialogResults: Array<{
+      id: string; title: string; unreadCount: number; lastMessage: string
+      lastMessageDate: number; isUser: boolean; isSavedMessages: boolean
+      isGroup: boolean; isChannel: boolean; isForum?: boolean
+      username?: string; phone?: string; avatar?: string
+    }> = []
+
+    // Map users
+    for (const user of result.users) {
+      if (!(user instanceof Api.User)) continue
+      const id = user.id.toString()
+      if (id === myId) continue
+      dialogResults.push({
+        id,
+        title: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Unknown',
+        unreadCount: 0,
+        lastMessage: user.username ? `@${user.username}` : '',
+        lastMessageDate: 0,
+        isUser: true,
+        isSavedMessages: false,
+        isGroup: false,
+        isChannel: false,
+        username: user.username ?? undefined,
+        phone: user.phone ?? undefined,
+      })
+    }
+
+    // Map chats (groups and channels)
+    for (const chat of result.chats) {
+      if (chat instanceof Api.Chat) {
+        const id = (-chat.id.valueOf()).toString()
+        dialogResults.push({
+          id,
+          title: chat.title,
+          unreadCount: 0,
+          lastMessage: '',
+          lastMessageDate: 0,
+          isUser: false,
+          isSavedMessages: false,
+          isGroup: true,
+          isChannel: false,
+        })
+      } else if (chat instanceof Api.Channel) {
+        const id = (-1000000000000 - chat.id.valueOf()).toString()
+        const isForum = (chat as unknown as { forum?: boolean }).forum === true
+        dialogResults.push({
+          id,
+          title: chat.title,
+          unreadCount: 0,
+          lastMessage: chat.username ? `@${chat.username}` : '',
+          lastMessageDate: 0,
+          isUser: false,
+          isSavedMessages: false,
+          isGroup: !chat.broadcast,
+          isChannel: chat.broadcast ?? false,
+          isForum,
+          username: chat.username ?? undefined,
+        })
+      }
+    }
+
+    // Download avatars for first 10 results
+    const avatarLimit = Math.min(dialogResults.length, 10)
+    const entities = [...result.users, ...result.chats]
+    const avatarPromises = entities.slice(0, avatarLimit).map(async (entity, i) => {
+      try {
+        const photo = await tc.downloadProfilePhoto(entity)
+        if (Buffer.isBuffer(photo) && photo.length > 0) {
+          const entry = dialogResults[i]
+          if (entry) {
+            entry.avatar = `data:image/jpeg;base64,${photo.toString('base64')}`
+          }
+        }
+      } catch {
+        // Skip avatar on error
+      }
+    })
+    await Promise.allSettled(avatarPromises)
+
+    return dialogResults
+  })
+
   ipcMain.handle('telegram:getSharedMediaCounts', async (_event, accountId: string | undefined, chatId: string) => {
     const tc = getClientForAccount(accountId)
     const entity = await tc.getInputEntity(chatId)

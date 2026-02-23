@@ -80,6 +80,8 @@ interface ChatsState {
   typingUsers: Record<string, TypingEntry[]>
   searchResults: SearchResult[]
   isSearching: boolean
+  contactSearchResults: TelegramDialog[]
+  isSearchingContacts: boolean
   hasMoreMessages: boolean
   isLoadingMoreMessages: boolean
   pinnedChats: Set<string>
@@ -91,6 +93,7 @@ interface ChatsState {
   getAccountState: (accountId: string) => AccountChatState
   loadMoreMessages: () => Promise<void>
   searchMessages: (query: string, chatId?: string) => Promise<void>
+  searchContacts: (query: string) => Promise<void>
   clearSearch: () => void
   togglePin: (chatId: string) => void
   toggleMute: (chatId: string) => void
@@ -139,6 +142,8 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   hasMoreMessages: true,
   isLoadingMoreMessages: false,
   isSearching: false,
+  contactSearchResults: [],
+  isSearchingContacts: false,
   pinnedChats: loadStringSet(PINNED_KEY),
   mutedChats: loadStringSet(MUTED_KEY),
   userFolders: [],
@@ -203,7 +208,41 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     }
   },
 
-  clearSearch: () => set({ searchResults: [], isSearching: false }),
+  searchContacts: async (query: string) => {
+    set({ isSearchingContacts: true, contactSearchResults: [] })
+    try {
+      const accounts = useAuthStore.getState().accounts
+      let results: TelegramDialog[]
+      if (accounts.length > 1) {
+        const perAccount = await Promise.all(
+          accounts.map(async (acc) => {
+            try {
+              const hits = await telegramAPI.searchContacts(query, 20, acc.id)
+              return hits.map((r) => ({ ...r, accountId: acc.id }))
+            } catch {
+              return [] as TelegramDialog[]
+            }
+          })
+        )
+        // Deduplicate by id across accounts (keep first occurrence)
+        const seen = new Set<string>()
+        results = []
+        for (const r of perAccount.flat()) {
+          if (!seen.has(r.id)) {
+            seen.add(r.id)
+            results.push(r)
+          }
+        }
+      } else {
+        results = await telegramAPI.searchContacts(query, 20)
+      }
+      set({ contactSearchResults: results, isSearchingContacts: false })
+    } catch {
+      set({ isSearchingContacts: false })
+    }
+  },
+
+  clearSearch: () => set({ searchResults: [], isSearching: false, contactSearchResults: [], isSearchingContacts: false }),
 
   togglePin: (chatId: string) => {
     set((state) => {
@@ -313,6 +352,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   setActiveChat: async (chatId: string) => {
     const dialog = get().dialogs.find((d) => d.id === chatId)
       ?? get().archivedDialogs.find((d) => d.id === chatId)
+      ?? get().contactSearchResults.find((d) => d.id === chatId)
 
     // Resolve accountId from the dialog's owning account, not the active account
     let accountId = useAuthStore.getState().activeAccountId
@@ -322,6 +362,20 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
         accountId = acctId
         break
       }
+    }
+    // Fallback: use the contact search result's tagged accountId
+    if (dialog?.accountId && accountId === useAuthStore.getState().activeAccountId) {
+      const fromAccountStates = Object.keys(accountStates).some(
+        (acctId) => accountStates[acctId]?.dialogs.some((d) => d.id === chatId)
+      )
+      if (!fromAccountStates) {
+        accountId = dialog.accountId
+      }
+    }
+
+    // If the dialog came from contact search and isn't in dialogs, prepend it
+    if (dialog && !get().dialogs.some((d) => d.id === chatId) && !get().archivedDialogs.some((d) => d.id === chatId)) {
+      set((state) => ({ dialogs: [dialog, ...state.dialogs] }))
     }
 
     if (dialog?.isForum) {
