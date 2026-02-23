@@ -77,7 +77,7 @@ export function ChatSidebar({ width }: ChatSidebarProps) {
   }
 
   const handleResultClick = (result: SearchResult) => {
-    void setActiveChat(result.chatId)
+    void setActiveChat(result.chatId, result.accountId)
     setSearch('')
     clearSearch()
   }

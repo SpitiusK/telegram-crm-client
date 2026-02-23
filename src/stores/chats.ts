@@ -103,7 +103,7 @@ interface ChatsState {
   loadUserFolders: () => Promise<void>
   loadArchivedDialogs: () => Promise<void>
   setActiveFolder: (folder: ChatFolder) => void
-  setActiveChat: (chatId: string) => Promise<void>
+  setActiveChat: (chatId: string, accountId?: string) => Promise<void>
   setActiveTopic: (topicId: number) => Promise<void>
   clearActiveTopic: () => void
   sendMessage: (text: string) => Promise<void>
@@ -349,27 +349,29 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     }
   },
 
-  setActiveChat: async (chatId: string) => {
+  setActiveChat: async (chatId: string, explicitAccountId?: string) => {
     const dialog = get().dialogs.find((d) => d.id === chatId)
       ?? get().archivedDialogs.find((d) => d.id === chatId)
       ?? get().contactSearchResults.find((d) => d.id === chatId)
 
-    // Resolve accountId from the dialog's owning account, not the active account
-    let accountId = useAuthStore.getState().activeAccountId
-    const { accountStates } = get()
-    for (const [acctId, acctState] of Object.entries(accountStates)) {
-      if (acctState.dialogs.some((d) => d.id === chatId)) {
-        accountId = acctId
-        break
+    // Use explicit accountId when provided; otherwise infer
+    let accountId = explicitAccountId ?? useAuthStore.getState().activeAccountId
+    if (!explicitAccountId) {
+      const { accountStates } = get()
+      for (const [acctId, acctState] of Object.entries(accountStates)) {
+        if (acctState.dialogs.some((d) => d.id === chatId)) {
+          accountId = acctId
+          break
+        }
       }
-    }
-    // Fallback: use the contact search result's tagged accountId
-    if (dialog?.accountId && accountId === useAuthStore.getState().activeAccountId) {
-      const fromAccountStates = Object.keys(accountStates).some(
-        (acctId) => accountStates[acctId]?.dialogs.some((d) => d.id === chatId)
-      )
-      if (!fromAccountStates) {
-        accountId = dialog.accountId
+      // Fallback: use the contact search result's tagged accountId
+      if (dialog?.accountId && accountId === useAuthStore.getState().activeAccountId) {
+        const fromAccountStates = Object.keys(accountStates).some(
+          (acctId) => accountStates[acctId]?.dialogs.some((d) => d.id === chatId)
+        )
+        if (!fromAccountStates) {
+          accountId = dialog.accountId
+        }
       }
     }
 
@@ -625,8 +627,15 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     void telegramAPI.setNotificationSettings({ mutedChats: [...get().mutedChats] })
 
     // Listen for notification clicks — navigate to the chat
-    const cleanupNotification = telegramAPI.onNotificationClick((chatId: string) => {
-      void get().setActiveChat(chatId)
+    const cleanupNotification = telegramAPI.onNotificationClick((chatId: string, accountId?: string) => {
+      if (accountId) {
+        const authStore = useAuthStore.getState()
+        if (accountId !== authStore.activeAccountId) {
+          void authStore.switchAccount(accountId).then(() => get().setActiveChat(chatId, accountId))
+          return
+        }
+      }
+      void get().setActiveChat(chatId, accountId)
     })
 
     const cleanup = telegramAPI.onUpdate((event, data) => {
@@ -635,7 +644,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
         const { activeChat } = get()
 
         // If the message is for the active chat, append it
-        if (activeChat && msg.chatId === activeChat.chatId) {
+        if (activeChat && msg.chatId === activeChat.chatId && msg.accountId === activeChat.accountId) {
           set((state) => ({ messages: [...state.messages, msg] }))
           // Mark as read immediately
           void telegramAPI.markRead(activeChat.chatId)
@@ -668,7 +677,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
                   ...d,
                   lastMessage: msg.text,
                   lastMessageDate: msg.date,
-                  unreadCount: msg.chatId === activeChat?.chatId ? 0 : d.unreadCount + 1,
+                  unreadCount: (msg.chatId === activeChat?.chatId && msg.accountId === activeChat?.accountId) ? 0 : d.unreadCount + 1,
                 }
               }
               return d
@@ -677,10 +686,11 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
             return updated
           }
 
-          const nextDialogs = updateDialogList(state.dialogs)
+          const displayedAccountId = state.dialogs[0]?.accountId ?? useAuthStore.getState().activeAccountId
+          const msgAccountId = msg.accountId
+          const nextDialogs = msgAccountId === displayedAccountId ? updateDialogList(state.dialogs) : state.dialogs
 
           // Also update accountStates if the message has an accountId
-          const msgAccountId = msg.accountId
           if (msgAccountId && state.accountStates[msgAccountId]) {
             const acctState = state.accountStates[msgAccountId]
             return {

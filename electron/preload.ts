@@ -40,11 +40,11 @@ const api = {
     connectAll: () => ipcRenderer.invoke('telegram:connectAll'),
     getDialogFilters: (accountId?: string) => ipcRenderer.invoke('telegram:getDialogFilters', accountId),
     getArchivedDialogs: (limit?: number, accountId?: string) => ipcRenderer.invoke('telegram:getArchivedDialogs', accountId, limit),
-    onNotificationClick: (callback: (chatId: string) => void) => {
+    onNotificationClick: (callback: (chatId: string, accountId?: string) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, eventName: string, data: unknown) => {
         if (eventName === 'notificationClick') {
-          const { chatId } = data as { chatId: string }
-          callback(chatId)
+          const { chatId, accountId } = data as { chatId: string; accountId?: string }
+          callback(chatId, accountId)
         }
       }
       ipcRenderer.on('telegram:update', handler)

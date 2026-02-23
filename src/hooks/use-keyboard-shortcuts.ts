@@ -82,7 +82,7 @@ export function useKeyboardShortcuts() {
         }
         const nextDialog = dialogs[nextIndex]
         if (nextDialog) {
-          void chats.setActiveChat(nextDialog.id)
+          void chats.setActiveChat(nextDialog.id, nextDialog.accountId ?? activeChat?.accountId)
         }
         return
       }

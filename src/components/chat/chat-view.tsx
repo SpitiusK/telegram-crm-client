@@ -12,6 +12,9 @@ import { ChatSearchBar } from './chat-search-bar'
 
 export function ChatView() {
   const { activeChat, dialogs, activeTopic, forumTopics, clearActiveTopic, typingUsers } = useChatsStore()
+  const accountDialogs = useChatsStore((s) =>
+    s.activeChat ? s.accountStates[s.activeChat.accountId]?.dialogs : undefined
+  )
   const accounts = useAuthStore((s) => s.accounts)
   const activeAccount = activeChat
     ? accounts.find((a) => a.id === activeChat.accountId)
@@ -51,7 +54,8 @@ export function ChatView() {
     )
   }
 
-  const currentDialog = dialogs.find((d) => d.id === activeChat.chatId)
+  const currentDialog = accountDialogs?.find((d) => d.id === activeChat.chatId)
+    ?? dialogs.find((d) => d.id === activeChat.chatId)
 
   const handleToggleChatSearch = () => {
     setShowChatSearch((prev) => !prev)

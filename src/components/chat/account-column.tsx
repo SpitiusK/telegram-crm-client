@@ -193,7 +193,7 @@ export function AccountColumn({
                   Messages
                 </div>
                 {searchResults.map((r) => (
-                  <SearchResultItem key={`${r.chatId}-${r.id}`} result={r} query={searchQuery ?? ''} onClick={() => void setActiveChat(r.chatId)} />
+                  <SearchResultItem key={`${r.chatId}-${r.id}`} result={r} query={searchQuery ?? ''} onClick={() => void setActiveChat(r.chatId, accountId)} />
                 ))}
               </>
             ) : null}
