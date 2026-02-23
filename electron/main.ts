@@ -47,7 +47,7 @@ function initDatabase(): void {
   try {
     database = new AppDatabase()
     database.init()
-    console.log('[Main] Database initialized successfully')
+    console.warn('[Main] Database initialized successfully')
   } catch (err) {
     console.error('[Main] Database initialization failed:', err)
   }

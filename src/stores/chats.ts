@@ -477,12 +477,14 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
 
   saveDraft: (chatId: string, text: string) => {
     set((state) => {
-      const drafts = { ...state.drafts }
       if (text.trim()) {
-        drafts[chatId] = text
-      } else {
-        delete drafts[chatId]
+        const drafts = { ...state.drafts, [chatId]: text }
+        persistDrafts(drafts)
+        return { drafts }
       }
+      const drafts = Object.fromEntries(
+        Object.entries(state.drafts).filter(([k]) => k !== chatId)
+      )
       persistDrafts(drafts)
       return { drafts }
     })
@@ -494,8 +496,9 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
 
   clearDraft: (chatId: string) => {
     set((state) => {
-      const drafts = { ...state.drafts }
-      delete drafts[chatId]
+      const drafts = Object.fromEntries(
+        Object.entries(state.drafts).filter(([k]) => k !== chatId)
+      )
       persistDrafts(drafts)
       return { drafts }
     })

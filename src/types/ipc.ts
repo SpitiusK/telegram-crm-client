@@ -113,39 +113,39 @@ export interface DatabaseGetActivityLogRequest {
 
 export interface IPCChannelMap {
   // Auth
-  'auth:requestQR': { request: void; response: AuthRequestQRResult }
+  'auth:requestQR': { request: undefined; response: AuthRequestQRResult }
   'auth:submitPhoneCode': { request: AuthSubmitPhoneCodeRequest; response: boolean }
   'auth:submit2FA': { request: AuthSubmit2FARequest; response: boolean }
-  'auth:checkSession': { request: void; response: AuthCheckSessionResult }
-  'auth:logout': { request: void; response: void }
+  'auth:checkSession': { request: undefined; response: AuthCheckSessionResult }
+  'auth:logout': { request: undefined; response: undefined }
 
   // Telegram
-  'telegram:connect': { request: TelegramConnectRequest | void; response: boolean }
-  'telegram:disconnect': { request: void; response: void }
+  'telegram:connect': { request: TelegramConnectRequest | undefined; response: boolean }
+  'telegram:disconnect': { request: undefined; response: undefined }
   'telegram:getDialogs': { request: { accountId?: string; limit?: number }; response: TelegramDialog[] }
-  'telegram:getDialogFilters': { request: { accountId?: string } | void; response: DialogFilter[] }
+  'telegram:getDialogFilters': { request: { accountId?: string } | undefined; response: DialogFilter[] }
   'telegram:getArchivedDialogs': { request: { accountId?: string; limit?: number }; response: TelegramDialog[] }
   'telegram:getMessages': { request: TelegramGetMessagesRequest; response: TelegramMessage[] }
-  'telegram:sendMessage': { request: TelegramSendMessageRequest; response: void }
-  'telegram:getMe': { request: { accountId?: string } | void; response: TelegramGetMeResult }
+  'telegram:sendMessage': { request: TelegramSendMessageRequest; response: undefined }
+  'telegram:getMe': { request: { accountId?: string } | undefined; response: TelegramGetMeResult }
 
   // CRM
   'crm:searchDeal': { request: CrmSearchDealRequest; response: BitrixDeal[] }
   'crm:getDeal': { request: string; response: BitrixDeal }
-  'crm:updateDealStage': { request: CrmUpdateDealStageRequest; response: void }
+  'crm:updateDealStage': { request: CrmUpdateDealStageRequest; response: undefined }
   'crm:getContact': { request: string; response: BitrixContact }
   'crm:searchContact': { request: CrmSearchContactRequest; response: BitrixContact[] }
-  'crm:linkContact': { request: CrmLinkContactRequest; response: void }
+  'crm:linkContact': { request: CrmLinkContactRequest; response: undefined }
 
   // Claude
   'claude:generateMessage': { request: ClaudeGenerateMessageRequest; response: AIMessageSuggestion[] }
   'claude:analyzeConversation': { request: ClaudeAnalyzeConversationRequest; response: ConversationAnalysis }
 
   // Database
-  'db:saveSetting': { request: { key: string; value: string }; response: void }
+  'db:saveSetting': { request: { key: string; value: string }; response: undefined }
   'db:getSetting': { request: string; response: string | null }
   'db:getActivityLog': { request: DatabaseGetActivityLogRequest; response: ActivityEntry[] }
-  'db:logActivity': { request: DatabaseLogActivityRequest; response: void }
+  'db:logActivity': { request: DatabaseLogActivityRequest; response: undefined }
 }
 
 // Event types pushed from main → renderer

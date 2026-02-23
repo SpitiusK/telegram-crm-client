@@ -11,7 +11,8 @@ export function renderFormattedText(text: string, entities?: MessageEntity[]): R
   let cursor = 0
 
   for (let i = 0; i < sorted.length; i++) {
-    const e = sorted[i]!
+    const e = sorted[i]
+    if (!e) continue
     // Add plain text before this entity
     if (e.offset > cursor) {
       parts.push(text.slice(cursor, e.offset))

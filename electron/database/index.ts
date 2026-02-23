@@ -51,7 +51,7 @@ export class AppDatabase {
           migration.up(this.db)
           this.db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(migration.name)
         })()
-        console.log(`[Database] Applied migration: ${migration.name}`)
+        console.warn(`[Database] Applied migration: ${migration.name}`)
       }
     }
   }

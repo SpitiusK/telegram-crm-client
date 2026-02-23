@@ -676,13 +676,15 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     if (accountId === activeAccountId) {
       activeAccountId = null
       if (ids.length > 0) {
-        const nextId = ids[0]!
-        const nextEntry = accounts.get(nextId)
-        if (nextEntry) {
-          await nextEntry.client.connect()
-          activeAccountId = nextId
-          db.saveSession('active_account_id', nextId)
-          setupEventHandlers(nextId, nextEntry.client)
+        const nextId = ids[0]
+        if (nextId) {
+          const nextEntry = accounts.get(nextId)
+          if (nextEntry) {
+            await nextEntry.client.connect()
+            activeAccountId = nextId
+            db.saveSession('active_account_id', nextId)
+            setupEventHandlers(nextId, nextEntry.client)
+          }
         }
       } else {
         db.saveSession('active_account_id', '')
@@ -875,7 +877,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
             senderName = senderCache.get(sid) ?? ''
           } else {
             try {
-              const sender = await tc.getEntity(m.senderId!)
+              const sender = await tc.getEntity(m.senderId ?? '')
               if (sender instanceof Api.User) {
                 senderName = [sender.firstName, sender.lastName].filter(Boolean).join(' ')
               } else if ('title' in sender) {
@@ -999,7 +1001,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
                   // Decode waveform: each byte is a value 0-31, sample down to ~50 bars
                   const allValues: number[] = []
                   for (let i = 0; i < rawWaveform.length; i++) {
-                    allValues.push(rawWaveform[i]! & 0x1f)
+                    allValues.push((rawWaveform[i] ?? 0) & 0x1f)
                   }
                   const targetBars = 50
                   if (allValues.length <= targetBars) {
@@ -1008,7 +1010,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
                     waveform = []
                     const step = allValues.length / targetBars
                     for (let i = 0; i < targetBars; i++) {
-                      waveform.push(allValues[Math.floor(i * step)]!)
+                      waveform.push(allValues[Math.floor(i * step)] ?? 0)
                     }
                   }
                 }
@@ -1091,7 +1093,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
                   replySenderName = senderCache.get(replySid) ?? ''
                 } else {
                   try {
-                    const replySender = await tc.getEntity(replied.senderId!)
+                    const replySender = await tc.getEntity(replied.senderId ?? '')
                     if (replySender instanceof Api.User) {
                       replySenderName = [replySender.firstName, replySender.lastName].filter(Boolean).join(' ')
                     } else if ('title' in replySender) {
@@ -1309,7 +1311,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
             senderName = senderCache.get(sid) ?? ''
           } else {
             try {
-              const sender = await tc.getEntity(m.senderId!)
+              const sender = await tc.getEntity(m.senderId ?? '')
               if (sender instanceof Api.User) {
                 senderName = [sender.firstName, sender.lastName].filter(Boolean).join(' ')
               } else if ('title' in sender) {
@@ -1361,7 +1363,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
                   replySenderName = senderCache.get(replySid) ?? ''
                 } else {
                   try {
-                    const replySender = await tc.getEntity(replied.senderId!)
+                    const replySender = await tc.getEntity(replied.senderId ?? '')
                     if (replySender instanceof Api.User) {
                       replySenderName = [replySender.firstName, replySender.lastName].filter(Boolean).join(' ')
                     } else if ('title' in replySender) {
@@ -1495,7 +1497,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
               senderName = senderCache.get(sid) ?? ''
             } else {
               try {
-                const sender = await tc.getEntity(m.senderId!)
+                const sender = await tc.getEntity(m.senderId ?? '')
                 if (sender instanceof Api.User) {
                   senderName = [sender.firstName, sender.lastName].filter(Boolean).join(' ')
                 } else if ('title' in sender) {
@@ -1573,7 +1575,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
                 senderCache.set(sid, senderName)
               } else {
                 try {
-                  const sender = await tc.getEntity(m.senderId!)
+                  const sender = await tc.getEntity(m.senderId ?? '')
                   if (sender instanceof Api.User) {
                     senderName = [sender.firstName, sender.lastName].filter(Boolean).join(' ')
                   } else if ('title' in sender) {
@@ -1805,13 +1807,15 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     if (logoutId === activeAccountId) {
       activeAccountId = null
       if (ids.length > 0) {
-        const nextId = ids[0]!
-        const nextEntry = accounts.get(nextId)
-        if (nextEntry) {
-          await nextEntry.client.connect()
-          activeAccountId = nextId
-          db.saveSession('active_account_id', nextId)
-          setupEventHandlers(nextId, nextEntry.client)
+        const nextId = ids[0]
+        if (nextId) {
+          const nextEntry = accounts.get(nextId)
+          if (nextEntry) {
+            await nextEntry.client.connect()
+            activeAccountId = nextId
+            db.saveSession('active_account_id', nextId)
+            setupEventHandlers(nextId, nextEntry.client)
+          }
         }
       } else {
         db.saveSession('active_account_id', '')

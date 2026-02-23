@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useChatsStore } from '../chats'
 import { useAuthStore } from '../auth'
-import type { TelegramDialog, TelegramMessage, SearchResult } from '../../types'
+import type { TelegramDialog, TelegramMessage, TelegramAccount, SearchResult } from '../../types'
 
 // Mock telegramAPI
 vi.mock('../../lib/telegram', () => ({
@@ -33,6 +33,17 @@ const mockTelegram: MockedTelegramAPI = telegramAPI as unknown as MockedTelegram
 
 // --- Factories ---
 
+function makeAccount(overrides: Partial<TelegramAccount> = {}): TelegramAccount {
+  return {
+    id: 'acc-A',
+    firstName: 'Alice',
+    lastName: '',
+    username: '',
+    phone: '+1111',
+    ...overrides,
+  }
+}
+
 function makeDialog(overrides: Partial<TelegramDialog> = {}): TelegramDialog {
   return {
     id: 'chat-1',
@@ -61,8 +72,8 @@ function makeMessage(overrides: Partial<TelegramMessage> = {}): TelegramMessage 
 function setupMultiAccount() {
   useAuthStore.setState({
     accounts: [
-      { id: 'acc-A', firstName: 'Alice', phone: '+1111' } as any,
-      { id: 'acc-B', firstName: 'Bob', phone: '+2222' } as any,
+      makeAccount({ id: 'acc-A', firstName: 'Alice', phone: '+1111' }),
+      makeAccount({ id: 'acc-B', firstName: 'Bob', phone: '+2222' }),
     ],
     activeAccountId: 'acc-A',
   })
@@ -71,7 +82,7 @@ function setupMultiAccount() {
 function resetStores() {
   useChatsStore.setState(useChatsStore.getInitialState())
   useAuthStore.setState({
-    accounts: [{ id: 'acc-A', firstName: 'Alice', phone: '+1111' } as any],
+    accounts: [makeAccount({ id: 'acc-A', firstName: 'Alice', phone: '+1111' })],
     activeAccountId: 'acc-A',
     isAuthorized: true,
     isLoading: false,
@@ -160,7 +171,7 @@ describe('Multi-Account Chat Store', () => {
       useChatsStore.setState({
         accountStates: {
           'acc-A': { dialogs: [], messages: {}, typingUsers: {} },
-          'acc-B': { dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' } as any)], messages: {}, typingUsers: {} },
+          'acc-B': { dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' })], messages: {}, typingUsers: {} },
         },
         dialogs: [],
       })
@@ -178,9 +189,9 @@ describe('Multi-Account Chat Store', () => {
       useChatsStore.setState({
         accountStates: {
           'acc-A': { dialogs: [], messages: {}, typingUsers: {} },
-          'acc-B': { dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' } as any)], messages: {}, typingUsers: {} },
+          'acc-B': { dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' })], messages: {}, typingUsers: {} },
         },
-        dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' } as any)],
+        dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' })],
       })
       mockTelegram.getMessages.mockResolvedValue([makeMessage()])
       mockTelegram.markRead.mockResolvedValue(undefined)
@@ -194,7 +205,7 @@ describe('Multi-Account Chat Store', () => {
       setupMultiAccount()
       useChatsStore.setState({
         accountStates: {
-          'acc-B': { dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' } as any)], messages: {}, typingUsers: {} },
+          'acc-B': { dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' })], messages: {}, typingUsers: {} },
         },
       })
       mockTelegram.getMessages.mockResolvedValue([])
@@ -280,7 +291,7 @@ describe('Multi-Account Chat Store', () => {
       setupMultiAccount()
       useChatsStore.setState({
         accountStates: {
-          'acc-B': { dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' } as any)], messages: {}, typingUsers: {} },
+          'acc-B': { dialogs: [makeDialog({ id: 'chat-B1', accountId: 'acc-B' })], messages: {}, typingUsers: {} },
         },
       })
       mockTelegram.getMessages.mockResolvedValue([

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { MessageSquare } from 'lucide-react'
 import { useChatsStore } from '../../stores/chats'
 import { useAuthStore } from '../../stores/auth'
@@ -17,9 +17,18 @@ export function ChatView() {
     : undefined
   const [showProfile, setShowProfile] = useState(false)
   const [showChatSearch, setShowChatSearch] = useState(false)
+  const [now, setNow] = useState(Date.now)
 
   const typingEntries = activeChat ? (typingUsers[activeChat.chatId] ?? []) : []
-  const isTyping = typingEntries.some((e) => Date.now() - e.timestamp < 5000)
+  const hasTypingEntries = typingEntries.length > 0
+
+  useEffect(() => {
+    if (!hasTypingEntries) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [hasTypingEntries])
+
+  const isTyping = typingEntries.some((e) => now - e.timestamp < 5000)
 
   if (!activeChat) {
     return (
