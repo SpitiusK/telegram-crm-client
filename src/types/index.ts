@@ -1,5 +1,6 @@
 export interface TelegramDialog {
   id: string
+  accountId?: string
   title: string
   unreadCount: number
   lastMessage: string
@@ -51,6 +52,7 @@ export interface LinkPreview {
 export interface TelegramMessage {
   id: number
   chatId: string
+  accountId?: string
   text: string
   date: number
   out: boolean
@@ -111,6 +113,7 @@ export interface SendMessageResult {
 export interface SearchResult {
   id: number
   chatId: string
+  accountId?: string
   chatTitle?: string
   text: string
   date: number
@@ -171,6 +174,7 @@ export interface AppTheme {
 
 export interface ElectronAPI {
   telegram: {
+    // Auth methods (no accountId)
     connect: () => Promise<void>
     getQRUrl: () => Promise<string>
     loginWithPhone: (phone: string) => Promise<{ phoneCodeHash: string }>
@@ -178,22 +182,26 @@ export interface ElectronAPI {
     submit2FA: (password: string) => Promise<boolean>
     checkPassword: (password: string) => Promise<boolean>
     isAuthorized: () => Promise<boolean>
-    getMe: () => Promise<TelegramUser | null>
-    getUserInfo: (userId: string) => Promise<UserProfile | null>
-    getDialogs: (limit?: number) => Promise<TelegramDialog[]>
-    getMessages: (chatId: string, limit?: number, offsetId?: number) => Promise<TelegramMessage[]>
-    getForumTopics: (chatId: string) => Promise<ForumTopic[]>
-    getTopicMessages: (chatId: string, topicId: number, limit?: number) => Promise<TelegramMessage[]>
-    sendMessage: (chatId: string, text: string, replyTo?: number) => Promise<SendMessageResult>
-    sendTopicMessage: (chatId: string, topicId: number, text: string) => Promise<SendMessageResult>
+    // Data methods (optional accountId as last param)
+    getMe: (accountId?: string) => Promise<TelegramUser | null>
+    getUserInfo: (userId: string, accountId?: string) => Promise<UserProfile | null>
+    getDialogs: (limit?: number, accountId?: string) => Promise<TelegramDialog[]>
+    getMessages: (chatId: string, limit?: number, offsetId?: number, accountId?: string) => Promise<TelegramMessage[]>
+    getForumTopics: (chatId: string, accountId?: string) => Promise<ForumTopic[]>
+    getTopicMessages: (chatId: string, topicId: number, limit?: number, accountId?: string) => Promise<TelegramMessage[]>
+    sendMessage: (chatId: string, text: string, replyTo?: number, accountId?: string) => Promise<SendMessageResult>
+    sendTopicMessage: (chatId: string, topicId: number, text: string, accountId?: string) => Promise<SendMessageResult>
     pickFile: (options?: { mediaOnly?: boolean }) => Promise<string | null>
-    sendFile: (chatId: string, filePath: string, caption?: string, replyTo?: number) => Promise<SendMessageResult>
-    sendPhoto: (chatId: string, base64Data: string, caption?: string, replyTo?: number) => Promise<SendMessageResult>
-    setTyping: (chatId: string) => Promise<void>
-    searchMessages: (query: string, chatId?: string, limit?: number) => Promise<SearchResult[]>
-    editMessage: (chatId: string, messageId: number, text: string) => Promise<void>
-    deleteMessages: (chatId: string, messageIds: number[], revoke?: boolean) => Promise<void>
-    markRead: (chatId: string) => Promise<void>
+    sendFile: (chatId: string, filePath: string, caption?: string, replyTo?: number, accountId?: string) => Promise<SendMessageResult>
+    sendPhoto: (chatId: string, base64Data: string, caption?: string, replyTo?: number, accountId?: string) => Promise<SendMessageResult>
+    setTyping: (chatId: string, accountId?: string) => Promise<void>
+    searchMessages: (query: string, chatId?: string, limit?: number, accountId?: string) => Promise<SearchResult[]>
+    editMessage: (chatId: string, messageId: number, text: string, accountId?: string) => Promise<void>
+    deleteMessages: (chatId: string, messageIds: number[], revoke?: boolean, accountId?: string) => Promise<void>
+    markRead: (chatId: string, accountId?: string) => Promise<void>
+    getDialogFilters: (accountId?: string) => Promise<DialogFilter[]>
+    getArchivedDialogs: (limit?: number, accountId?: string) => Promise<TelegramDialog[]>
+    // Settings / account management (no accountId)
     setNotificationSettings: (settings: { mutedChats: string[] }) => Promise<void>
     logout: () => Promise<void>
     getAccounts: () => Promise<TelegramAccount[]>
@@ -201,8 +209,7 @@ export interface ElectronAPI {
     addAccount: () => Promise<void>
     removeAccount: (accountId: string) => Promise<void>
     cancelAddAccount: () => Promise<void>
-    getDialogFilters: () => Promise<DialogFilter[]>
-    getArchivedDialogs: () => Promise<TelegramDialog[]>
+    // Event listeners
     onNotificationClick: (callback: (chatId: string) => void) => () => void
     onUpdate: (callback: (event: string, data: unknown) => void) => () => void
   }

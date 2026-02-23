@@ -25,6 +25,9 @@ const accounts = new Map<string, { client: TelegramClient; sessionString: string
 let activeAccountId: string | null = null
 let legacyClient: TelegramClient | null = null
 
+// Track which accounts already have event handlers registered (prevent duplicates)
+const accountEventHandlers = new Set<string>()
+
 // Auth state (temporary client used during login flows)
 let authClient: TelegramClient | null = null
 let pendingPasswordResolve: ((password: string) => void) | null = null
@@ -63,6 +66,18 @@ function getActiveClient(): TelegramClient {
     throw new Error('Active account not found in accounts map')
   }
   return entry.client
+}
+
+/** Resolve client for a specific account, falling back to active account for backward compat. */
+function getClientForAccount(accountId?: string): TelegramClient {
+  if (accountId) {
+    const entry = accounts.get(accountId)
+    if (!entry) {
+      throw new Error(`No session for account ${accountId} — account not found or not connected`)
+    }
+    return entry.client
+  }
+  return getActiveClient()
 }
 
 function getAuthClient(): TelegramClient {
@@ -148,7 +163,7 @@ async function finalizeAuth(tc: TelegramClient): Promise<void> {
   activeAccountId = accountId
   authClient = null
 
-  setupEventHandlers(tc)
+  setupEventHandlers(accountId, tc)
 }
 
 interface MappedEntity {
@@ -197,7 +212,11 @@ function sendToRenderer(event: string, data: unknown): void {
   }
 }
 
-function setupEventHandlers(tc: TelegramClient): void {
+function setupEventHandlers(accountId: string, tc: TelegramClient): void {
+  // Prevent duplicate handlers when called multiple times for the same account
+  if (accountEventHandlers.has(accountId)) return
+  accountEventHandlers.add(accountId)
+
   // New message handler
   tc.addEventHandler(async (event) => {
     const msg = event.message
@@ -206,6 +225,7 @@ function setupEventHandlers(tc: TelegramClient): void {
     const chatId = msg.chatId?.toString() ?? ''
 
     sendToRenderer('newMessage', {
+      accountId,
       id: msg.id,
       chatId,
       text: msg.message ?? '',
@@ -246,7 +266,7 @@ function setupEventHandlers(tc: TelegramClient): void {
             if (win.isMinimized()) win.restore()
             win.focus()
           }
-          sendToRenderer('notificationClick', { chatId })
+          sendToRenderer('notificationClick', { accountId, chatId })
         })
         notification.show()
       }
@@ -257,12 +277,14 @@ function setupEventHandlers(tc: TelegramClient): void {
   tc.addEventHandler((update) => {
     if (update instanceof Api.UpdateReadHistoryOutbox) {
       sendToRenderer('readHistory', {
+        accountId,
         peerId: update.peer.toString(),
         maxId: update.maxId,
       })
     }
     if (update instanceof Api.UpdateReadHistoryInbox) {
       sendToRenderer('readHistoryInbox', {
+        accountId,
         peerId: update.peer.toString(),
         maxId: update.maxId,
       })
@@ -270,18 +292,21 @@ function setupEventHandlers(tc: TelegramClient): void {
     // Typing indicator
     if (update instanceof Api.UpdateUserTyping) {
       sendToRenderer('typing', {
+        accountId,
         chatId: update.userId.toString(),
         userId: update.userId.toString(),
       })
     }
     if (update instanceof Api.UpdateChatUserTyping) {
       sendToRenderer('typing', {
+        accountId,
         chatId: update.chatId.toString(),
         userId: update.fromId?.toString() ?? '',
       })
     }
     if (update instanceof Api.UpdateChannelUserTyping) {
       sendToRenderer('typing', {
+        accountId,
         chatId: update.channelId.toString(),
         userId: update.fromId?.toString() ?? '',
       })
@@ -441,7 +466,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
           await entry.client.connect()
           const authorized = await entry.client.checkAuthorization()
           if (authorized) {
-            setupEventHandlers(entry.client)
+            setupEventHandlers(activeAccountId, entry.client)
           }
           return authorized
         }
@@ -470,7 +495,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
 
             accounts.set(accountId, { client: legacyClient, sessionString: sessionStr })
             activeAccountId = accountId
-            setupEventHandlers(legacyClient)
+            setupEventHandlers(accountId, legacyClient)
             legacyClient = null
           }
         }
@@ -483,9 +508,9 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
-  ipcMain.handle('telegram:getMe', async () => {
-    // During auth, use the auth client; otherwise use active
-    const tc = authClient ?? getActiveClient()
+  ipcMain.handle('telegram:getMe', async (_event, accountId?: string) => {
+    // During auth, use the auth client; otherwise use specified/active account
+    const tc = authClient ?? getClientForAccount(accountId)
     const me = await tc.getMe()
     if (me instanceof Api.User) {
       return {
@@ -592,7 +617,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     const db = getDatabase()
     db.saveSession('active_account_id', accountId)
 
-    setupEventHandlers(entry.client)
+    setupEventHandlers(accountId, entry.client)
     return true
   })
 
@@ -618,6 +643,9 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     const ids = loadAccountIds().filter((id) => id !== accountId)
     saveAccountIds(ids)
 
+    // Clean up event handler tracking for removed account
+    accountEventHandlers.delete(accountId)
+
     // If removed the active account, switch to another
     if (accountId === activeAccountId) {
       activeAccountId = null
@@ -628,7 +656,7 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
           await nextEntry.client.connect()
           activeAccountId = nextId
           db.saveSession('active_account_id', nextId)
-          setupEventHandlers(nextEntry.client)
+          setupEventHandlers(nextId, nextEntry.client)
         }
       } else {
         db.saveSession('active_account_id', '')
@@ -643,8 +671,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
-  ipcMain.handle('telegram:getDialogFilters', async () => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:getDialogFilters', async (_event, accountId?: string) => {
+    const tc = getClientForAccount(accountId)
 
     const result = await tc.invoke(new Api.messages.GetDialogFilters())
 
@@ -676,8 +704,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
       }))
   })
 
-  ipcMain.handle('telegram:getArchivedDialogs', async (_event, limit = 50) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:getArchivedDialogs', async (_event, accountId?: string, limit = 50) => {
+    const tc = getClientForAccount(accountId)
     const dialogs = await tc.getDialogs({ folder: 1, limit })
 
     const me = await tc.getMe()
@@ -738,8 +766,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     return dialogData
   })
 
-  ipcMain.handle('telegram:getDialogs', async (_event, limit = 50) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:getDialogs', async (_event, accountId?: string, limit = 50) => {
+    const tc = getClientForAccount(accountId)
     const dialogs = await tc.getDialogs({ limit })
 
     // Get current user for Saved Messages detection
@@ -801,8 +829,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     return dialogData
   })
 
-  ipcMain.handle('telegram:getMessages', async (_event, chatId: string, limit = 50, offsetId?: number) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:getMessages', async (_event, accountId: string | undefined, chatId: string, limit = 50, offsetId?: number) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
     const messages = await tc.getMessages(entity, { limit, ...(offsetId ? { offsetId } : {}) })
 
@@ -1080,8 +1108,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     return result
   })
 
-  ipcMain.handle('telegram:sendMessage', async (_event, chatId: string, text: string, replyTo?: number) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:sendMessage', async (_event, accountId: string | undefined, chatId: string, text: string, replyTo?: number) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
 
     // Rate limiting: 1-2s delay
@@ -1097,22 +1125,22 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
-  ipcMain.handle('telegram:editMessage', async (_event, chatId: string, messageId: number, text: string) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:editMessage', async (_event, accountId: string | undefined, chatId: string, messageId: number, text: string) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
 
     await tc.editMessage(entity, { message: messageId, text })
   })
 
-  ipcMain.handle('telegram:deleteMessages', async (_event, chatId: string, messageIds: number[], revoke?: boolean) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:deleteMessages', async (_event, accountId: string | undefined, chatId: string, messageIds: number[], revoke?: boolean) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
 
     await tc.deleteMessages(entity, messageIds, { revoke: revoke ?? true })
   })
 
-  ipcMain.handle('telegram:getUserInfo', async (_event, userId: string) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:getUserInfo', async (_event, accountId: string | undefined, userId: string) => {
+    const tc = getClientForAccount(accountId)
     try {
       const entity = await tc.getEntity(userId)
       if (entity instanceof Api.User) {
@@ -1158,8 +1186,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
-  ipcMain.handle('telegram:getForumTopics', async (_event, chatId: string) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:getForumTopics', async (_event, accountId: string | undefined, chatId: string) => {
+    const tc = getClientForAccount(accountId)
     const inputEntity = await tc.getInputEntity(chatId)
     if (!(inputEntity instanceof Api.InputPeerChannel)) {
       return []
@@ -1223,8 +1251,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
       })
   })
 
-  ipcMain.handle('telegram:getTopicMessages', async (_event, chatId: string, topicId: number, limit = 50) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:getTopicMessages', async (_event, accountId: string | undefined, chatId: string, topicId: number, limit = 50) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
     const messages = await tc.getMessages(entity, { limit: limit * 2 })
 
@@ -1346,8 +1374,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     )
   })
 
-  ipcMain.handle('telegram:sendTopicMessage', async (_event, chatId: string, topicId: number, text: string) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:sendTopicMessage', async (_event, accountId: string | undefined, chatId: string, topicId: number, text: string) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
 
     // Rate limiting: 1-2s delay
@@ -1383,8 +1411,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     return result.filePaths[0] ?? null
   })
 
-  ipcMain.handle('telegram:sendFile', async (_event, chatId: string, filePath: string, caption?: string, replyTo?: number) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:sendFile', async (_event, accountId: string | undefined, chatId: string, filePath: string, caption?: string, replyTo?: number) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
 
     await new Promise((r) => setTimeout(r, 1000 + Math.random() * 1000))
@@ -1400,8 +1428,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
-  ipcMain.handle('telegram:sendPhoto', async (_event, chatId: string, base64Data: string, caption?: string, replyTo?: number) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:sendPhoto', async (_event, accountId: string | undefined, chatId: string, base64Data: string, caption?: string, replyTo?: number) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
 
     await new Promise((r) => setTimeout(r, 1000 + Math.random() * 1000))
@@ -1421,8 +1449,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
-  ipcMain.handle('telegram:searchMessages', async (_event, query: string, chatId?: string, limit = 20) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:searchMessages', async (_event, accountId: string | undefined, query: string, chatId?: string, limit = 20) => {
+    const tc = getClientForAccount(accountId)
 
     if (chatId) {
       // Search within a specific chat
@@ -1547,8 +1575,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
-  ipcMain.handle('telegram:setTyping', async (_event, chatId: string) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:setTyping', async (_event, accountId: string | undefined, chatId: string) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getInputEntity(chatId)
     await tc.invoke(
       new Api.messages.SetTyping({
@@ -1558,8 +1586,8 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     )
   })
 
-  ipcMain.handle('telegram:markRead', async (_event, chatId: string) => {
-    const tc = getActiveClient()
+  ipcMain.handle('telegram:markRead', async (_event, accountId: string | undefined, chatId: string) => {
+    const tc = getClientForAccount(accountId)
     const entity = await tc.getEntity(chatId)
     await tc.markAsRead(entity)
   })
@@ -1571,36 +1599,40 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     }
   })
 
-  ipcMain.handle('telegram:logout', async () => {
-    if (!activeAccountId) return
+  ipcMain.handle('telegram:logout', async (_event, targetAccountId?: string) => {
+    const logoutId = targetAccountId ?? activeAccountId
+    if (!logoutId) return
 
-    const entry = accounts.get(activeAccountId)
+    const entry = accounts.get(logoutId)
     if (entry) {
       try { await entry.client.invoke(new Api.auth.LogOut()) } catch { /* ignore */ }
       try { await entry.client.disconnect() } catch { /* ignore */ }
-      accounts.delete(activeAccountId)
+      accounts.delete(logoutId)
     }
+    accountEventHandlers.delete(logoutId)
 
-    // Remove current account from stored accounts
+    // Remove account from stored accounts
     const db = getDatabase()
-    db.saveSession(`account_session_${activeAccountId}`, '')
-    db.saveSession(`account_info_${activeAccountId}`, '')
-    const ids = loadAccountIds().filter((id) => id !== activeAccountId)
+    db.saveSession(`account_session_${logoutId}`, '')
+    db.saveSession(`account_info_${logoutId}`, '')
+    const ids = loadAccountIds().filter((id) => id !== logoutId)
     saveAccountIds(ids)
-    activeAccountId = null
 
-    // Switch to another account if available
-    if (ids.length > 0) {
-      const nextId = ids[0]!
-      const nextEntry = accounts.get(nextId)
-      if (nextEntry) {
-        await nextEntry.client.connect()
-        activeAccountId = nextId
-        db.saveSession('active_account_id', nextId)
-        setupEventHandlers(nextEntry.client)
+    // If we logged out the active account, switch to another
+    if (logoutId === activeAccountId) {
+      activeAccountId = null
+      if (ids.length > 0) {
+        const nextId = ids[0]!
+        const nextEntry = accounts.get(nextId)
+        if (nextEntry) {
+          await nextEntry.client.connect()
+          activeAccountId = nextId
+          db.saveSession('active_account_id', nextId)
+          setupEventHandlers(nextId, nextEntry.client)
+        }
+      } else {
+        db.saveSession('active_account_id', '')
       }
-    } else {
-      db.saveSession('active_account_id', '')
     }
 
     // Legacy cleanup
@@ -1609,11 +1641,35 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     } catch { /* ignore */ }
   })
 
-  // Periodic session save — catches auth key rotations during normal use
+  // Connect ALL stored accounts (for simultaneous multi-account)
+  ipcMain.handle('telegram:connectAll', async () => {
+    const ids = loadAccountIds()
+    const results: Array<{ accountId: string; connected: boolean; error?: string }> = []
+
+    for (const id of ids) {
+      const entry = accounts.get(id)
+      if (!entry) {
+        results.push({ accountId: id, connected: false, error: 'No session found' })
+        continue
+      }
+      try {
+        await entry.client.connect()
+        setupEventHandlers(id, entry.client)
+        results.push({ accountId: id, connected: true })
+      } catch (err) {
+        console.error(`[Telegram] Failed to connect account ${id}:`, err)
+        results.push({ accountId: id, connected: false, error: String(err) })
+      }
+      // Stagger connections to avoid burst
+      await new Promise((r) => setTimeout(r, 500))
+    }
+
+    return results
+  })
+
+  // Periodic session save — catches auth key rotations during normal use (saves ALL accounts)
   if (sessionSaveInterval) clearInterval(sessionSaveInterval)
   sessionSaveInterval = setInterval(() => {
-    if (activeAccountId) {
-      saveAccountSession(activeAccountId)
-    }
+    saveAllSessions()
   }, 60_000)
 }

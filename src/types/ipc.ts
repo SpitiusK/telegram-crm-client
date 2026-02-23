@@ -33,12 +33,14 @@ export interface TelegramConnectRequest {
 }
 
 export interface TelegramGetMessagesRequest {
+  accountId?: string
   chatId: string
   limit?: number
   offsetId?: number
 }
 
 export interface TelegramSendMessageRequest {
+  accountId?: string
   chatId: string
   text: string
 }
@@ -120,12 +122,12 @@ export interface IPCChannelMap {
   // Telegram
   'telegram:connect': { request: TelegramConnectRequest | void; response: boolean }
   'telegram:disconnect': { request: void; response: void }
-  'telegram:getDialogs': { request: number | undefined; response: TelegramDialog[] }
-  'telegram:getDialogFilters': { request: void; response: DialogFilter[] }
-  'telegram:getArchivedDialogs': { request: number | undefined; response: TelegramDialog[] }
+  'telegram:getDialogs': { request: { accountId?: string; limit?: number }; response: TelegramDialog[] }
+  'telegram:getDialogFilters': { request: { accountId?: string } | void; response: DialogFilter[] }
+  'telegram:getArchivedDialogs': { request: { accountId?: string; limit?: number }; response: TelegramDialog[] }
   'telegram:getMessages': { request: TelegramGetMessagesRequest; response: TelegramMessage[] }
   'telegram:sendMessage': { request: TelegramSendMessageRequest; response: void }
-  'telegram:getMe': { request: void; response: TelegramGetMeResult }
+  'telegram:getMe': { request: { accountId?: string } | void; response: TelegramGetMeResult }
 
   // CRM
   'crm:searchDeal': { request: CrmSearchDealRequest; response: BitrixDeal[] }
