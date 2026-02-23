@@ -21,3 +21,4 @@ blob-report/
 *.tsbuildinfo
 *.png
 .playwright-mcp/
+.worktrees/
