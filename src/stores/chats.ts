@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { telegramAPI } from '../lib/telegram'
+import { useAuthStore } from './auth'
 import type { TelegramDialog, TelegramMessage, ForumTopic, SearchResult, DialogFilter } from '../types'
 
 const DRAFTS_KEY = 'telegram-crm-drafts'
@@ -51,10 +52,20 @@ interface TypingEntry {
 
 export type ChatFolder = 'all' | 'users' | 'groups' | 'channels' | 'forums' | 'bots' | 'archive' | `folder:${number}`
 
+export interface AccountChatState {
+  dialogs: TelegramDialog[]
+  messages: Record<string, TelegramMessage[]>
+  typingUsers: Record<string, TypingEntry[]>
+}
+
+function emptyAccountState(): AccountChatState {
+  return { dialogs: [], messages: {}, typingUsers: {} }
+}
+
 interface ChatsState {
   dialogs: TelegramDialog[]
   messages: TelegramMessage[]
-  activeChat: string | null
+  activeChat: { accountId: string; chatId: string } | null
   activeFolder: ChatFolder
   searchQuery: string
   isLoadingDialogs: boolean
@@ -76,6 +87,8 @@ interface ChatsState {
   userFolders: DialogFilter[]
   archivedDialogs: TelegramDialog[]
   isLoadingArchive: boolean
+  accountStates: Record<string, AccountChatState>
+  getAccountState: (accountId: string) => AccountChatState
   loadMoreMessages: () => Promise<void>
   searchMessages: (query: string, chatId?: string) => Promise<void>
   clearSearch: () => void
@@ -130,6 +143,16 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   userFolders: [],
   archivedDialogs: [],
   isLoadingArchive: false,
+  accountStates: {},
+  getAccountState: (accountId: string) => {
+    const existing = get().accountStates[accountId]
+    if (existing) return existing
+    const fresh = emptyAccountState()
+    set((state) => ({
+      accountStates: { ...state.accountStates, [accountId]: fresh },
+    }))
+    return fresh
+  },
 
   loadMoreMessages: async () => {
     const { activeChat, messages, hasMoreMessages, isLoadingMoreMessages, isLoadingMessages } = get()
@@ -141,7 +164,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
 
     set({ isLoadingMoreMessages: true })
     try {
-      const olderMessages = await telegramAPI.getMessages(activeChat, 50, oldestMsg.id)
+      const olderMessages = await telegramAPI.getMessages(activeChat.chatId, 50, oldestMsg.id)
       set((state) => ({
         messages: [...olderMessages, ...state.messages],
         hasMoreMessages: olderMessages.length >= 50,
@@ -194,7 +217,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   removeDialog: (chatId: string) => {
     set((state) => ({
       dialogs: state.dialogs.filter((d) => d.id !== chatId),
-      ...(state.activeChat === chatId ? { activeChat: null, messages: [] } : {}),
+      ...(state.activeChat?.chatId === chatId ? { activeChat: null, messages: [] } : {}),
     }))
   },
 
@@ -236,7 +259,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       ?? get().archivedDialogs.find((d) => d.id === chatId)
     if (dialog?.isForum) {
       // Forum group: load topics instead of messages
-      set({ activeChat: chatId, activeTopic: null, forumTopics: [], messages: [], isLoadingTopics: true, isLoadingMessages: false })
+      set({ activeChat: { accountId: useAuthStore.getState().activeAccountId, chatId }, activeTopic: null, forumTopics: [], messages: [], isLoadingTopics: true, isLoadingMessages: false })
       try {
         const topics = await telegramAPI.getForumTopics(chatId)
         set({ forumTopics: topics, isLoadingTopics: false })
@@ -245,7 +268,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       }
     } else {
       // Regular chat: load messages
-      set({ activeChat: chatId, activeTopic: null, forumTopics: [], isLoadingMessages: true, messages: [], hasMoreMessages: true })
+      set({ activeChat: { accountId: useAuthStore.getState().activeAccountId, chatId }, activeTopic: null, forumTopics: [], isLoadingMessages: true, messages: [], hasMoreMessages: true })
       try {
         const messages = await telegramAPI.getMessages(chatId, 50)
         set({ messages, isLoadingMessages: false, hasMoreMessages: messages.length >= 50 })
@@ -266,7 +289,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     if (!activeChat) return
     set({ activeTopic: topicId, isLoadingMessages: true, messages: [], hasMoreMessages: true })
     try {
-      const messages = await telegramAPI.getTopicMessages(activeChat, topicId, 50)
+      const messages = await telegramAPI.getTopicMessages(activeChat.chatId, topicId, 50)
       set({ messages, isLoadingMessages: false, hasMoreMessages: messages.length >= 50 })
     } catch {
       set({ isLoadingMessages: false })
@@ -289,13 +312,13 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
 
     const replyToId = replyingTo?.id
     const result = activeTopic !== null
-      ? await telegramAPI.sendTopicMessage(activeChat, activeTopic, text)
-      : await telegramAPI.sendMessage(activeChat, text, replyToId)
+      ? await telegramAPI.sendTopicMessage(activeChat.chatId, activeTopic, text)
+      : await telegramAPI.sendMessage(activeChat.chatId, text, replyToId)
 
     // Optimistically add to messages
     const newMsg: TelegramMessage = {
       id: result.id,
-      chatId: activeChat,
+      chatId: activeChat.chatId,
       text,
       date: result.date,
       out: true,
@@ -313,7 +336,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     const { activeChat, replyingTo } = get()
     if (!activeChat) return
     const replyToId = replyingTo?.id
-    await telegramAPI.sendFile(activeChat, filePath, undefined, replyToId)
+    await telegramAPI.sendFile(activeChat.chatId, filePath, undefined, replyToId)
     set({ replyingTo: null })
   },
 
@@ -321,7 +344,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     const { activeChat, replyingTo } = get()
     if (!activeChat) return
     const replyToId = replyingTo?.id
-    await telegramAPI.sendPhoto(activeChat, base64Data, undefined, replyToId)
+    await telegramAPI.sendPhoto(activeChat.chatId, base64Data, undefined, replyToId)
     set({ replyingTo: null })
   },
 
@@ -331,7 +354,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   editMessage: async (messageId: number, text: string) => {
     const { activeChat } = get()
     if (!activeChat) return
-    await telegramAPI.editMessage(activeChat, messageId, text)
+    await telegramAPI.editMessage(activeChat.chatId, messageId, text)
     set((state) => ({
       messages: state.messages.map((m) =>
         m.id === messageId ? { ...m, text, isEdited: true } : m
@@ -343,7 +366,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   deleteMessages: async (messageIds: number[]) => {
     const { activeChat } = get()
     if (!activeChat) return
-    await telegramAPI.deleteMessages(activeChat, messageIds)
+    await telegramAPI.deleteMessages(activeChat.chatId, messageIds)
     set((state) => ({
       messages: state.messages.filter((m) => !messageIds.includes(m.id)),
     }))
@@ -425,10 +448,10 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
         const { activeChat } = get()
 
         // If the message is for the active chat, append it
-        if (msg.chatId === activeChat) {
+        if (activeChat && msg.chatId === activeChat.chatId) {
           set((state) => ({ messages: [...state.messages, msg] }))
           // Mark as read immediately
-          void telegramAPI.markRead(activeChat)
+          void telegramAPI.markRead(activeChat.chatId)
         }
 
         // Update dialog list: move chat to top, update preview
@@ -439,7 +462,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
                 ...d,
                 lastMessage: msg.text,
                 lastMessageDate: msg.date,
-                unreadCount: msg.chatId === activeChat ? 0 : d.unreadCount + 1,
+                unreadCount: msg.chatId === activeChat?.chatId ? 0 : d.unreadCount + 1,
               }
             }
             return d

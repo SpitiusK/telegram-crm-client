@@ -48,11 +48,11 @@ export function MessageList() {
     const el = scrollRef.current
     if (!el) return
 
-    const chatChanged = prevChatRef.current !== activeChat
-    prevChatRef.current = activeChat
+    const chatChanged = prevChatRef.current !== activeChat.chatId
+    prevChatRef.current = activeChat.chatId
 
     if (chatChanged) {
-      const savedPosition = scrollPositions[activeChat]
+      const savedPosition = scrollPositions[activeChat.chatId]
       if (savedPosition !== undefined) {
         // Use requestAnimationFrame to ensure DOM has rendered messages
         requestAnimationFrame(() => {
@@ -73,7 +73,7 @@ export function MessageList() {
   // Auto-scroll on new messages only if at bottom or user sent the message
   useEffect(() => {
     if (!activeChat || isLoadingMessages) return
-    if (prevChatRef.current !== activeChat) return // Skip during chat change
+    if (prevChatRef.current !== activeChat.chatId) return // Skip during chat change
 
     const prevLen = prevMessagesLenRef.current
     const newLen = messages.length
@@ -131,7 +131,7 @@ export function MessageList() {
       clearTimeout(debounceTimerRef.current)
     }
     debounceTimerRef.current = setTimeout(() => {
-      saveScrollPosition(activeChat, el.scrollTop)
+      saveScrollPosition(activeChat.chatId, el.scrollTop)
     }, SCROLL_SAVE_DEBOUNCE)
   }, [activeChat, checkIsAtBottom, saveScrollPosition, hasMoreMessages, isLoadingMoreMessages, loadMoreMessages])
 

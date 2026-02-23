@@ -26,7 +26,7 @@ export function ChatView() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
-  const typingEntries = activeChat ? (typingUsers[activeChat] ?? []) : []
+  const typingEntries = activeChat ? (typingUsers[activeChat.chatId] ?? []) : []
   const isTyping = typingEntries.some((e) => Date.now() - e.timestamp < 5000)
 
   // Reset chat search when switching chats
@@ -50,7 +50,7 @@ export function ChatView() {
     }
     setIsChatSearching(true)
     try {
-      const results = await telegramAPI.searchMessages(query.trim(), activeChat, 20)
+      const results = await telegramAPI.searchMessages(query.trim(), activeChat.chatId, 20)
       setChatSearchResults(results)
     } catch {
       setChatSearchResults([])
@@ -98,7 +98,7 @@ export function ChatView() {
     )
   }
 
-  const currentDialog = dialogs.find((d) => d.id === activeChat)
+  const currentDialog = dialogs.find((d) => d.id === activeChat.chatId)
 
   return (
     <div className="flex-1 flex min-w-0">

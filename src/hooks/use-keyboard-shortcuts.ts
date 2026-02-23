@@ -72,7 +72,7 @@ export function useKeyboardShortcuts() {
         const { dialogs, activeChat } = chats
         if (dialogs.length === 0) return
         const currentIndex = activeChat
-          ? dialogs.findIndex((d) => d.id === activeChat)
+          ? dialogs.findIndex((d) => d.id === activeChat.chatId)
           : -1
         let nextIndex: number
         if (e.key === 'ArrowUp') {
@@ -98,7 +98,7 @@ export function useKeyboardShortcuts() {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'm') {
         e.preventDefault()
         const { activeChat, toggleMute } = useChatsStore.getState()
-        if (activeChat) toggleMute(activeChat)
+        if (activeChat) toggleMute(activeChat.chatId)
         return
       }
     }

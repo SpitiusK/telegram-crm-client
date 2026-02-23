@@ -23,14 +23,14 @@ export function MessageInput() {
     if (!activeChat) return
 
     // Save draft for previous chat
-    if (prevChatRef.current && prevChatRef.current !== activeChat) {
+    if (prevChatRef.current && prevChatRef.current !== activeChat.chatId) {
       saveDraft(prevChatRef.current, text)
     }
 
     // Load draft for new chat
-    const draft = getDraft(activeChat)
+    const draft = getDraft(activeChat.chatId)
     setText(draft)
-    prevChatRef.current = activeChat
+    prevChatRef.current = activeChat.chatId
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -88,13 +88,13 @@ export function MessageInput() {
     // Debounced draft save
     if (draftTimer.current) clearTimeout(draftTimer.current)
     draftTimer.current = setTimeout(() => {
-      if (activeChat) saveDraft(activeChat, value)
+      if (activeChat) saveDraft(activeChat.chatId, value)
     }, 500)
 
     // Typing indicator (max once per 5s)
     if (activeChat && Date.now() - lastTypingSent.current > 5000) {
       lastTypingSent.current = Date.now()
-      void telegramAPI.setTyping(activeChat).catch(() => {/* ignore */})
+      void telegramAPI.setTyping(activeChat.chatId).catch(() => {/* ignore */})
     }
   }, [activeChat, saveDraft])
 
@@ -107,7 +107,7 @@ export function MessageInput() {
     if (!trimmed) return
     void sendMessage(trimmed)
     setText('')
-    clearDraft(activeChat)
+    clearDraft(activeChat.chatId)
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
@@ -116,7 +116,7 @@ export function MessageInput() {
   const handleCancel = () => {
     if (isEditing) {
       setEditingMessage(null)
-      setText(getDraft(activeChat))
+      setText(getDraft(activeChat.chatId))
     } else {
       setReplyingTo(null)
     }

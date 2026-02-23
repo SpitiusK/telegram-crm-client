@@ -102,7 +102,7 @@ export const ChatListItem = memo(function ChatListItem({ dialog }: ChatListItemP
   const { activeChat, setActiveChat, drafts, pinnedChats, mutedChats } = useChatsStore()
   const { toggleCrmPanel } = useUIStore()
   const { findDealByPhone } = useCrmStore()
-  const isActive = activeChat === dialog.id
+  const isActive = activeChat?.chatId === dialog.id
   const draft = drafts[dialog.id]
   const isPinned = pinnedChats.has(dialog.id)
   const isMuted = mutedChats.has(dialog.id)
