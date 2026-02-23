@@ -1,6 +1,6 @@
 // IPC Request/Response types — fully typed end-to-end
 
-import type { TelegramDialog, TelegramMessage, BitrixDeal, BitrixContact, AIMessageSuggestion } from './index'
+import type { TelegramDialog, TelegramMessage, BitrixDeal, BitrixContact, AIMessageSuggestion, DialogFilter } from './index'
 import type { ActivityEntry } from './domain'
 
 // ─── Auth ───
@@ -121,6 +121,8 @@ export interface IPCChannelMap {
   'telegram:connect': { request: TelegramConnectRequest | void; response: boolean }
   'telegram:disconnect': { request: void; response: void }
   'telegram:getDialogs': { request: number | undefined; response: TelegramDialog[] }
+  'telegram:getDialogFilters': { request: void; response: DialogFilter[] }
+  'telegram:getArchivedDialogs': { request: number | undefined; response: TelegramDialog[] }
   'telegram:getMessages': { request: TelegramGetMessagesRequest; response: TelegramMessage[] }
   'telegram:sendMessage': { request: TelegramSendMessageRequest; response: void }
   'telegram:getMe': { request: void; response: TelegramGetMeResult }

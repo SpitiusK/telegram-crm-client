@@ -10,15 +10,16 @@ import { ActivityLog } from '../crm/activity-log'
 import { SettingsView } from '../settings/settings-view'
 
 export function MainLayout() {
-  const { loadDialogs, setupRealtimeUpdates } = useChatsStore()
+  const { loadDialogs, loadUserFolders, setupRealtimeUpdates } = useChatsStore()
   const { view, setView, crmPanelOpen, showSettings, setShowSettings } = useUIStore()
   const { currentUser } = useAuthStore()
 
   useEffect(() => {
     void loadDialogs()
+    void loadUserFolders()
     const cleanup = setupRealtimeUpdates()
     return cleanup
-  }, [loadDialogs, setupRealtimeUpdates])
+  }, [loadDialogs, loadUserFolders, setupRealtimeUpdates])
 
   return (
     <div className="flex flex-col h-screen bg-telegram-bg overflow-hidden">

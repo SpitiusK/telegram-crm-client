@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
-import { setupTelegramIPC } from './ipc/telegram'
+import { setupTelegramIPC, saveAllSessions } from './ipc/telegram'
 import { setupCrmIPC } from './ipc/crm'
 import { setupClaudeIPC } from './ipc/claude'
 import { setupDatabaseIPC } from './ipc/database'
@@ -82,6 +82,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  saveAllSessions()
   database?.close()
 })
 

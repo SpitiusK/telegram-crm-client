@@ -34,6 +34,8 @@ const api = {
     addAccount: () => ipcRenderer.invoke('telegram:addAccount'),
     removeAccount: (accountId: string) => ipcRenderer.invoke('telegram:removeAccount', accountId),
     cancelAddAccount: () => ipcRenderer.invoke('telegram:cancelAddAccount'),
+    getDialogFilters: () => ipcRenderer.invoke('telegram:getDialogFilters'),
+    getArchivedDialogs: (limit?: number) => ipcRenderer.invoke('telegram:getArchivedDialogs', limit),
     onNotificationClick: (callback: (chatId: string) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, eventName: string, data: unknown) => {
         if (eventName === 'notificationClick') {

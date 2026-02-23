@@ -158,6 +158,13 @@ export interface TelegramAccount {
   avatar?: string
 }
 
+export interface DialogFilter {
+  id: number
+  title: string
+  emoji?: string
+  includePeers: string[]
+}
+
 export interface AppTheme {
   mode: 'dark' | 'light'
 }
@@ -194,6 +201,8 @@ export interface ElectronAPI {
     addAccount: () => Promise<void>
     removeAccount: (accountId: string) => Promise<void>
     cancelAddAccount: () => Promise<void>
+    getDialogFilters: () => Promise<DialogFilter[]>
+    getArchivedDialogs: () => Promise<TelegramDialog[]>
     onNotificationClick: (callback: (chatId: string) => void) => () => void
     onUpdate: (callback: (event: string, data: unknown) => void) => () => void
   }

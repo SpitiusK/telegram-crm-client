@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { telegramAPI } from '../lib/telegram'
-import type { TelegramDialog, TelegramMessage, ForumTopic, SearchResult } from '../types'
+import type { TelegramDialog, TelegramMessage, ForumTopic, SearchResult, DialogFilter } from '../types'
 
 const DRAFTS_KEY = 'telegram-crm-drafts'
 const PINNED_KEY = 'telegram-crm-pinned'
@@ -49,7 +49,7 @@ interface TypingEntry {
   timestamp: number
 }
 
-export type ChatFolder = 'all' | 'users' | 'groups' | 'channels' | 'forums' | 'bots'
+export type ChatFolder = 'all' | 'users' | 'groups' | 'channels' | 'forums' | 'bots' | 'archive' | `folder:${number}`
 
 interface ChatsState {
   dialogs: TelegramDialog[]
@@ -73,6 +73,9 @@ interface ChatsState {
   isLoadingMoreMessages: boolean
   pinnedChats: Set<string>
   mutedChats: Set<string>
+  userFolders: DialogFilter[]
+  archivedDialogs: TelegramDialog[]
+  isLoadingArchive: boolean
   loadMoreMessages: () => Promise<void>
   searchMessages: (query: string, chatId?: string) => Promise<void>
   clearSearch: () => void
@@ -80,6 +83,8 @@ interface ChatsState {
   toggleMute: (chatId: string) => void
   removeDialog: (chatId: string) => void
   loadDialogs: () => Promise<void>
+  loadUserFolders: () => Promise<void>
+  loadArchivedDialogs: () => Promise<void>
   setActiveFolder: (folder: ChatFolder) => void
   setActiveChat: (chatId: string) => Promise<void>
   setActiveTopic: (topicId: number) => Promise<void>
@@ -122,6 +127,9 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   isSearching: false,
   pinnedChats: loadStringSet(PINNED_KEY),
   mutedChats: loadStringSet(MUTED_KEY),
+  userFolders: [],
+  archivedDialogs: [],
+  isLoadingArchive: false,
 
   loadMoreMessages: async () => {
     const { activeChat, messages, hasMoreMessages, isLoadingMoreMessages, isLoadingMessages } = get()
@@ -202,8 +210,30 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     }
   },
 
+  loadUserFolders: async () => {
+    try {
+      const folders = await telegramAPI.getDialogFilters()
+      set({ userFolders: folders })
+    } catch {
+      // ignore — folders are optional
+    }
+  },
+
+  loadArchivedDialogs: async () => {
+    const { archivedDialogs, isLoadingArchive } = get()
+    if (archivedDialogs.length > 0 || isLoadingArchive) return
+    set({ isLoadingArchive: true })
+    try {
+      const archived = await telegramAPI.getArchivedDialogs()
+      set({ archivedDialogs: archived, isLoadingArchive: false })
+    } catch {
+      set({ isLoadingArchive: false })
+    }
+  },
+
   setActiveChat: async (chatId: string) => {
     const dialog = get().dialogs.find((d) => d.id === chatId)
+      ?? get().archivedDialogs.find((d) => d.id === chatId)
     if (dialog?.isForum) {
       // Forum group: load topics instead of messages
       set({ activeChat: chatId, activeTopic: null, forumTopics: [], messages: [], isLoadingTopics: true, isLoadingMessages: false })

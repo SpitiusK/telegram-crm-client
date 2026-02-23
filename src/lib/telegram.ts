@@ -1,4 +1,4 @@
-import type { TelegramDialog, TelegramMessage, TelegramUser, TelegramAccount, UserProfile, VerifyCodeResult, SendMessageResult, ForumTopic, SearchResult } from '../types'
+import type { TelegramDialog, TelegramMessage, TelegramUser, TelegramAccount, UserProfile, VerifyCodeResult, SendMessageResult, ForumTopic, SearchResult, DialogFilter } from '../types'
 
 const api = () => window.electronAPI.telegram
 
@@ -33,6 +33,8 @@ export const telegramAPI = {
   addAccount: (): Promise<void> => api().addAccount(),
   removeAccount: (accountId: string): Promise<void> => api().removeAccount(accountId),
   cancelAddAccount: (): Promise<void> => api().cancelAddAccount(),
+  getDialogFilters: (): Promise<DialogFilter[]> => api().getDialogFilters(),
+  getArchivedDialogs: (): Promise<TelegramDialog[]> => api().getArchivedDialogs(),
   onNotificationClick: (cb: (chatId: string) => void) => api().onNotificationClick(cb),
   onUpdate: (cb: (event: string, data: unknown) => void) => api().onUpdate(cb),
 }

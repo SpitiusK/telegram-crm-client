@@ -6,7 +6,7 @@ import type { ChatFolder } from '../../stores/chats'
 import type { TelegramDialog, TelegramAccount, SearchResult } from '../../types'
 import { ChatListItem } from './chat-list-item'
 
-const FOLDER_TABS: { key: ChatFolder; label: string }[] = [
+const BUILTIN_TABS: { key: ChatFolder; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'users', label: 'Users' },
   { key: 'groups', label: 'Groups' },
@@ -29,6 +29,8 @@ function matchesFolder(dialog: TelegramDialog, folder: ChatFolder): boolean {
       return !!dialog.isForum
     case 'bots':
       return dialog.isUser && !!dialog.username && dialog.username.toLowerCase().endsWith('bot')
+    default:
+      return true
   }
 }
 
@@ -162,7 +164,7 @@ function SearchResultItem({ result, query, onClick }: { result: SearchResult; qu
 }
 
 export function ChatSidebar() {
-  const { dialogs, isLoadingDialogs, activeFolder, setActiveFolder, pinnedChats, searchResults, isSearching, searchMessages, clearSearch, setActiveChat } = useChatsStore()
+  const { dialogs, isLoadingDialogs, activeFolder, setActiveFolder, pinnedChats, searchResults, isSearching, searchMessages, clearSearch, setActiveChat, userFolders, archivedDialogs, isLoadingArchive, loadArchivedDialogs } = useChatsStore()
   const { setShowSettings } = useUIStore()
   const [search, setSearch] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
@@ -208,10 +210,30 @@ export function ChatSidebar() {
   }
 
   const filtered = useMemo(() => {
+    // Archive tab uses its own dialog list
+    if (activeFolder === 'archive') {
+      let result = archivedDialogs
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        result = result.filter((d) => d.title.toLowerCase().includes(q))
+      }
+      return result
+    }
+
     let result = dialogs
-    if (activeFolder !== 'all') {
+
+    // User folder: filter by includePeers
+    if (activeFolder.startsWith('folder:')) {
+      const folderId = Number(activeFolder.slice(7))
+      const folder = userFolders.find((f) => f.id === folderId)
+      if (folder) {
+        const peerSet = new Set(folder.includePeers)
+        result = result.filter((d) => peerSet.has(d.id))
+      }
+    } else if (activeFolder !== 'all') {
       result = result.filter((d) => matchesFolder(d, activeFolder))
     }
+
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter((d) => d.title.toLowerCase().includes(q))
@@ -225,7 +247,7 @@ export function ChatSidebar() {
       return b.lastMessageDate - a.lastMessageDate
     })
     return result
-  }, [dialogs, search, activeFolder, pinnedChats])
+  }, [dialogs, archivedDialogs, search, activeFolder, pinnedChats, userFolders])
 
   const hasSearchQuery = search.trim().length >= 3
   const showSearchResults = hasSearchQuery && (searchResults.length > 0 || isSearching)
@@ -270,7 +292,7 @@ export function ChatSidebar() {
 
       {/* Folder tabs */}
       <div className="flex overflow-x-auto scrollbar-none border-b border-telegram-border">
-        {FOLDER_TABS.map((tab) => (
+        {BUILTIN_TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveFolder(tab.key)}
@@ -286,11 +308,46 @@ export function ChatSidebar() {
             )}
           </button>
         ))}
+        {userFolders.map((folder) => {
+          const key: ChatFolder = `folder:${folder.id}`
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveFolder(key)}
+              className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors relative ${
+                activeFolder === key
+                  ? 'text-telegram-accent'
+                  : 'text-telegram-text-secondary hover:text-telegram-text'
+              }`}
+            >
+              {folder.emoji ? `${folder.emoji} ` : ''}{folder.title}
+              {activeFolder === key && (
+                <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-telegram-accent rounded-full" />
+              )}
+            </button>
+          )
+        })}
+        <button
+          onClick={() => {
+            setActiveFolder('archive')
+            void loadArchivedDialogs()
+          }}
+          className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors relative ${
+            activeFolder === 'archive'
+              ? 'text-telegram-accent'
+              : 'text-telegram-text-secondary hover:text-telegram-text'
+          }`}
+        >
+          Archive
+          {activeFolder === 'archive' && (
+            <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-telegram-accent rounded-full" />
+          )}
+        </button>
       </div>
 
       {/* Dialog list */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {isLoadingDialogs ? (
+        {isLoadingDialogs || (activeFolder === 'archive' && isLoadingArchive) ? (
           <div className="flex items-center justify-center py-8">
             <div className="w-6 h-6 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
           </div>

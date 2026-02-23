@@ -29,6 +29,26 @@ let legacyClient: TelegramClient | null = null
 let authClient: TelegramClient | null = null
 let pendingPasswordResolve: ((password: string) => void) | null = null
 const mutedChats = new Set<string>()
+let sessionSaveInterval: ReturnType<typeof setInterval> | null = null
+
+function saveAccountSession(accountId: string): void {
+  const entry = accounts.get(accountId)
+  if (!entry) return
+  try {
+    const currentSession = (entry.client.session as StringSession).save()
+    if (currentSession && currentSession !== entry.sessionString) {
+      entry.sessionString = currentSession
+      const db = getDatabase()
+      db.saveSession(`account_session_${accountId}`, currentSession)
+    }
+  } catch { /* client may be disconnected */ }
+}
+
+export function saveAllSessions(): void {
+  for (const [accountId] of accounts) {
+    saveAccountSession(accountId)
+  }
+}
 
 function createClient(session: string): TelegramClient {
   return new TelegramClient(new StringSession(session), API_ID, API_HASH, CLIENT_OPTIONS)
@@ -533,8 +553,40 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
     const entry = accounts.get(accountId)
     if (!entry) throw new Error(`No session for account ${accountId}`)
 
+    // Save current account's session before switching (auth keys may have rotated)
+    if (activeAccountId) {
+      saveAccountSession(activeAccountId)
+    }
+
     // Connect if needed, don't disconnect others
-    await entry.client.connect()
+    try {
+      await entry.client.connect()
+      await entry.client.getMe()
+    } catch (err: unknown) {
+      const isAuth401 =
+        (err instanceof Error && 'code' in err && (err as { code: unknown }).code === 401) ||
+        (err instanceof Error && /AUTH_KEY_UNREGISTERED/i.test(err.message))
+
+      if (isAuth401) {
+        const info = getAccountInfo(accountId)
+        const db = getDatabase()
+        db.saveSession(`account_session_${accountId}`, '')
+        accounts.delete(accountId)
+
+        const windows = BrowserWindow.getAllWindows()
+        for (const win of windows) {
+          win.webContents.send('telegram:accountAuthRequired', {
+            accountId,
+            phoneNumber: info?.phone ?? '',
+          })
+        }
+
+        return { error: 'AUTH_KEY_UNREGISTERED', accountId }
+      }
+
+      throw err
+    }
+
     activeAccountId = accountId
 
     const db = getDatabase()
@@ -589,6 +641,101 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
       try { await authClient.disconnect() } catch { /* ignore */ }
       authClient = null
     }
+  })
+
+  ipcMain.handle('telegram:getDialogFilters', async () => {
+    const tc = getActiveClient()
+
+    const result = await tc.invoke(new Api.messages.GetDialogFilters())
+
+    interface RawDialogFilter {
+      id: number
+      title: string
+      emoticon?: string
+      includePeers: unknown[]
+    }
+
+    function extractPeerId(peer: unknown): string | null {
+      if (peer instanceof Api.InputPeerUser) return peer.userId.toString()
+      if (peer instanceof Api.InputPeerChat) return (-peer.chatId.valueOf()).toString()
+      if (peer instanceof Api.InputPeerChannel) return (-1000000000000 - peer.channelId.valueOf()).toString()
+      return null
+    }
+
+    const filters = (result as unknown as { filters: unknown[] }).filters ?? ((result as unknown) as unknown[])
+    return (filters as unknown[])
+      .filter((f): f is RawDialogFilter => {
+        // Only return user-created filters (DialogFilter), skip DialogFilterDefault and system filters
+        return f instanceof Api.DialogFilter && 'title' in f
+      })
+      .map((f) => ({
+        id: f.id,
+        title: f.title,
+        emoji: f.emoticon ?? undefined,
+        includePeers: f.includePeers.map(extractPeerId).filter((id): id is string => id !== null),
+      }))
+  })
+
+  ipcMain.handle('telegram:getArchivedDialogs', async (_event, limit = 50) => {
+    const tc = getActiveClient()
+    const dialogs = await tc.getDialogs({ folder: 1, limit })
+
+    const me = await tc.getMe()
+    const myId = me instanceof Api.User ? me.id.toString() : ''
+
+    const dialogData = dialogs.map((d) => {
+      const entity = d.entity
+      const entityId = d.id?.toString() ?? ''
+      const isSavedMessages = myId !== '' && entityId === myId
+      const isGroup = d.isGroup
+      const isChannel = d.isChannel
+      const username =
+        entity instanceof Api.User || entity instanceof Api.Channel
+          ? (entity.username ?? undefined)
+          : undefined
+
+      const isForum = entity instanceof Api.Channel &&
+        (entity as unknown as { forum?: boolean }).forum === true
+
+      return {
+        id: entityId,
+        title: isSavedMessages ? 'Saved Messages' : (d.title ?? ''),
+        unreadCount: d.unreadCount ?? 0,
+        lastMessage: d.message?.message ?? '',
+        lastMessageDate: d.message?.date ?? 0,
+        isUser: d.isUser,
+        isSavedMessages,
+        isGroup,
+        isChannel,
+        isForum,
+        username,
+        phone:
+          entity && 'phone' in entity
+            ? (entity as { phone?: string }).phone
+            : undefined,
+        avatar: undefined as string | undefined,
+      }
+    })
+
+    // Download avatars for first 20 dialogs (rate-limit safe)
+    const avatarLimit = Math.min(dialogData.length, 20)
+    const avatarPromises = dialogs.slice(0, avatarLimit).map(async (d, i) => {
+      try {
+        if (!d.entity) return
+        const photo = await tc.downloadProfilePhoto(d.entity)
+        if (Buffer.isBuffer(photo) && photo.length > 0) {
+          const entry = dialogData[i]
+          if (entry) {
+            entry.avatar = `data:image/jpeg;base64,${photo.toString('base64')}`
+          }
+        }
+      } catch {
+        // Skip avatar on error
+      }
+    })
+    await Promise.allSettled(avatarPromises)
+
+    return dialogData
   })
 
   ipcMain.handle('telegram:getDialogs', async (_event, limit = 50) => {
@@ -1461,4 +1608,12 @@ export function setupTelegramIPC(ipcMain: IpcMain): void {
       db.saveSession('telegram_session', '')
     } catch { /* ignore */ }
   })
+
+  // Periodic session save — catches auth key rotations during normal use
+  if (sessionSaveInterval) clearInterval(sessionSaveInterval)
+  sessionSaveInterval = setInterval(() => {
+    if (activeAccountId) {
+      saveAccountSession(activeAccountId)
+    }
+  }, 60_000)
 }
