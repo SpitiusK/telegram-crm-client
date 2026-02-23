@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@rollup/rollup-linux-x64-gnu": "^4.59.0",
     "better-sqlite3": "^11.8.1",
     "googleapis": "^144.0.0",
     "qrcode": "^1.5.4",

@@ -450,7 +450,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   editMessage: async (messageId: number, text: string) => {
     const { activeChat } = get()
     if (!activeChat) return
-    await telegramAPI.editMessage(activeChat.chatId, messageId, text)
+    await telegramAPI.editMessage(activeChat.chatId, messageId, text, activeChat.accountId)
     set((state) => ({
       messages: state.messages.map((m) =>
         m.id === messageId ? { ...m, text, isEdited: true } : m
@@ -462,7 +462,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   deleteMessages: async (messageIds: number[]) => {
     const { activeChat } = get()
     if (!activeChat) return
-    await telegramAPI.deleteMessages(activeChat.chatId, messageIds)
+    await telegramAPI.deleteMessages(activeChat.chatId, messageIds, undefined, activeChat.accountId)
     set((state) => ({
       messages: state.messages.filter((m) => !messageIds.includes(m.id)),
     }))
