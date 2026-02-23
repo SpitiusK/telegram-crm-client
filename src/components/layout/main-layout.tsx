@@ -49,16 +49,16 @@ export function MainLayout() {
   }, [accounts.length, loadDialogs, loadAllAccountDialogs, loadUserFolders, setupRealtimeUpdates])
 
   return (
-    <div className="flex flex-col h-screen bg-telegram-bg overflow-hidden">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Top nav bar */}
-      <div className="h-12 flex items-center justify-between px-4 bg-telegram-sidebar border-b border-telegram-border">
+      <div className="h-12 flex items-center justify-between px-4 bg-popover border-b border-border">
         <div className="flex items-center gap-1">
           <button
             onClick={() => setView('chats')}
             className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               view === 'chats'
-                ? 'bg-telegram-accent text-white'
-                : 'text-telegram-text-secondary hover:text-telegram-text'
+                ? 'bg-primary text-white'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             💬 Chats
@@ -67,8 +67,8 @@ export function MainLayout() {
             onClick={() => setView('pipeline')}
             className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               view === 'pipeline'
-                ? 'bg-telegram-accent text-white'
-                : 'text-telegram-text-secondary hover:text-telegram-text'
+                ? 'bg-primary text-white'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             📊 Pipeline
@@ -77,8 +77,8 @@ export function MainLayout() {
             onClick={() => setView('activity')}
             className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               view === 'activity'
-                ? 'bg-telegram-accent text-white'
-                : 'text-telegram-text-secondary hover:text-telegram-text'
+                ? 'bg-primary text-white'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             📝 Activity
@@ -89,11 +89,12 @@ export function MainLayout() {
           {accounts.length > 1 && (
             <button
               onClick={toggleLayoutMode}
+              aria-label={layoutMode === 'columns' ? 'Switch to single sidebar' : 'Switch to multi-column layout'}
               title={layoutMode === 'columns' ? 'Switch to single sidebar' : 'Switch to multi-column layout'}
               className={`p-1.5 rounded-md transition-colors ${
                 showColumns
-                  ? 'text-telegram-accent bg-telegram-accent/10'
-                  : 'text-telegram-text-secondary hover:text-telegram-text hover:bg-telegram-hover'
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,13 +103,14 @@ export function MainLayout() {
             </button>
           )}
           {currentUser && (
-            <span className="text-telegram-text-secondary text-xs">
+            <span className="text-muted-foreground text-xs">
               {currentUser.firstName} {currentUser.lastName}
             </span>
           )}
           <button
             onClick={() => setShowSettings(true)}
-            className="p-1.5 rounded-md text-telegram-text-secondary hover:text-telegram-text hover:bg-telegram-hover transition-colors"
+            aria-label="Settings"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="Settings"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

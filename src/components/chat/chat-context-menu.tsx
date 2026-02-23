@@ -118,7 +118,7 @@ export function ChatContextMenu({ dialog, x, y, onClose }: ChatContextMenuProps)
   return createPortal(
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[180px] bg-telegram-sidebar border border-telegram-border rounded-lg shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-50 min-w-[180px] bg-popover border border-border rounded-lg shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100"
       style={{ left: pos.left, top: pos.top }}
     >
       {items.map((item) => (
@@ -127,8 +127,8 @@ export function ChatContextMenu({ dialog, x, y, onClose }: ChatContextMenuProps)
           onClick={item.onClick}
           className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
             item.danger
-              ? 'text-red-400 hover:bg-red-500/10'
-              : 'text-telegram-text hover:bg-telegram-hover'
+              ? 'text-destructive hover:bg-destructive/10'
+              : 'text-foreground hover:bg-accent'
           }`}
         >
           {item.icon}

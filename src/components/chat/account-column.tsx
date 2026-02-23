@@ -3,6 +3,7 @@ import { useChatsStore } from '../../stores/chats'
 import type { ChatFolder } from '../../stores/chats'
 import type { TelegramDialog } from '../../types'
 import { ChatListItem } from './chat-list-item'
+import { Spinner } from '@/components/ui/spinner'
 
 const BUILTIN_TABS: { key: ChatFolder; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -81,11 +82,12 @@ export function AccountColumn({
   // Collapsed: thin strip with avatar initial + unread count
   if (isCollapsed) {
     return (
-      <div className="w-12 min-w-[48px] bg-telegram-sidebar flex flex-col items-center border-r border-telegram-border">
+      <div className="w-12 min-w-[48px] bg-popover flex flex-col items-center border-r border-border">
         <button
           onClick={onToggleCollapse}
+          aria-label={`Expand ${accountName}`}
           title={`Expand ${accountName}`}
-          className="w-full flex flex-col items-center gap-1 py-3 hover:bg-telegram-hover transition-colors"
+          className="w-full flex flex-col items-center gap-1 py-3 hover:bg-accent transition-colors"
         >
           <span
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold"
@@ -94,7 +96,7 @@ export function AccountColumn({
             {initial}
           </span>
           {totalUnread > 0 && (
-            <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-telegram-accent flex items-center justify-center text-white text-[10px] font-medium">
+            <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-medium">
               {totalUnread > 99 ? '99+' : totalUnread}
             </span>
           )}
@@ -105,27 +107,28 @@ export function AccountColumn({
 
   // Expanded: full column with header, folder tabs, dialog list
   return (
-    <div className="w-[260px] min-w-[200px] flex-1 max-w-[320px] bg-telegram-sidebar flex flex-col border-r border-telegram-border">
+    <div className="w-[260px] min-w-[200px] flex-1 max-w-[320px] bg-popover flex flex-col border-r border-border">
       {/* Column header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-telegram-border">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
         <span
           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
           style={{ backgroundColor: accountColor }}
         >
           {initial}
         </span>
-        <span className="text-telegram-text text-sm font-medium truncate flex-1">
+        <span className="text-foreground text-sm font-medium truncate flex-1">
           {accountName}
         </span>
         {totalUnread > 0 && (
-          <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-telegram-accent flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0">
+          <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0">
             {totalUnread > 99 ? '99+' : totalUnread}
           </span>
         )}
         <button
           onClick={onToggleCollapse}
+          aria-label="Collapse"
           title="Collapse"
-          className="p-1 rounded hover:bg-telegram-hover text-telegram-text-secondary hover:text-telegram-text transition-colors flex-shrink-0"
+          className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
         >
           <svg
             className="w-4 h-4"
@@ -144,20 +147,20 @@ export function AccountColumn({
       </div>
 
       {/* Folder tabs */}
-      <div className="flex overflow-x-auto scrollbar-none border-b border-telegram-border">
+      <div className="flex overflow-x-auto scrollbar-none border-b border-border">
         {BUILTIN_TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveFolder(tab.key)}
             className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors relative ${
               activeFolder === tab.key
-                ? 'text-telegram-accent'
-                : 'text-telegram-text-secondary hover:text-telegram-text'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {tab.label}
             {activeFolder === tab.key && (
-              <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-telegram-accent rounded-full" />
+              <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />
             )}
           </button>
         ))}
@@ -167,10 +170,10 @@ export function AccountColumn({
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {isLoadingDialogs ? (
           <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
+            <Spinner />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-telegram-text-secondary text-sm">
+          <div className="text-center py-8 text-muted-foreground text-sm">
             No chats
           </div>
         ) : (

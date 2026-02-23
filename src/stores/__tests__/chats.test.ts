@@ -27,7 +27,9 @@ vi.mock('../../lib/telegram', () => ({
 
 import { telegramAPI } from '../../lib/telegram'
 
-const mockTelegram = telegramAPI as unknown as Record<string, ReturnType<typeof vi.fn>>
+// All keys are guaranteed by vi.mock above, safe to use Required
+type MockedTelegramAPI = { [K in keyof typeof telegramAPI]: ReturnType<typeof vi.fn> }
+const mockTelegram: MockedTelegramAPI = telegramAPI as unknown as MockedTelegramAPI
 
 // --- Factories ---
 
@@ -71,9 +73,9 @@ function resetStores() {
   useAuthStore.setState({
     accounts: [{ id: 'acc-A', firstName: 'Alice', phone: '+1111' } as any],
     activeAccountId: 'acc-A',
-    isAuthenticated: true,
+    isAuthorized: true,
     isLoading: false,
-    user: null,
+    currentUser: null,
   })
   vi.clearAllMocks()
 }
@@ -106,9 +108,9 @@ describe('Multi-Account Chat Store', () => {
 
       const accState = useChatsStore.getState().accountStates['acc-A']
       expect(accState).toBeDefined()
-      expect(accState.dialogs).toHaveLength(2)
+      expect(accState?.dialogs).toHaveLength(2)
       // Dialogs should be tagged with accountId
-      expect(accState.dialogs[0].accountId).toBe('acc-A')
+      expect(accState?.dialogs[0]?.accountId).toBe('acc-A')
     })
 
     it('loadAllAccountDialogs populates all accounts', async () => {
@@ -117,7 +119,7 @@ describe('Multi-Account Chat Store', () => {
       const dialogsB = [makeDialog({ id: 'chat-B1' }), makeDialog({ id: 'chat-B2' })]
 
       mockTelegram.getDialogs
-        .mockImplementation(async (limit: number, accountId?: string) => {
+        .mockImplementation(async (_limit: number, accountId?: string) => {
           if (accountId === 'acc-A') return dialogsA
           if (accountId === 'acc-B') return dialogsB
           return []
@@ -127,9 +129,9 @@ describe('Multi-Account Chat Store', () => {
 
       const stateA = useChatsStore.getState().accountStates['acc-A']
       const stateB = useChatsStore.getState().accountStates['acc-B']
-      expect(stateA.dialogs).toHaveLength(1)
-      expect(stateB.dialogs).toHaveLength(2)
-      expect(stateB.dialogs[0].accountId).toBe('acc-B')
+      expect(stateA?.dialogs).toHaveLength(1)
+      expect(stateB?.dialogs).toHaveLength(2)
+      expect(stateB?.dialogs[0]?.accountId).toBe('acc-B')
     })
 
     it('loadAllAccountDialogs sets flat dialogs to active account', async () => {
@@ -146,7 +148,7 @@ describe('Multi-Account Chat Store', () => {
       // Flat dialogs should be active account's
       const flat = useChatsStore.getState().dialogs
       expect(flat).toHaveLength(1)
-      expect(flat[0].id).toBe('chat-A1')
+      expect(flat[0]?.id).toBe('chat-A1')
     })
   })
 
@@ -168,7 +170,7 @@ describe('Multi-Account Chat Store', () => {
 
       const activeChat = useChatsStore.getState().activeChat
       expect(activeChat).not.toBeNull()
-      expect(activeChat!.accountId).toBe('acc-B') // NOT acc-A
+      expect(activeChat?.accountId).toBe('acc-B') // NOT acc-A
     })
 
     it('markRead is called with correct accountId', async () => {
@@ -220,8 +222,8 @@ describe('Multi-Account Chat Store', () => {
       await useChatsStore.getState().setActiveChat('chat-1')
 
       const stored = useChatsStore.getState().messages
-      expect(stored[0].text).toBe('oldest')
-      expect(stored[2].text).toBe('newest')
+      expect(stored[0]?.text).toBe('oldest')
+      expect(stored[2]?.text).toBe('newest')
     })
 
     it('new incoming message appends at end', async () => {
@@ -241,7 +243,7 @@ describe('Multi-Account Chat Store', () => {
 
       const msgs = useChatsStore.getState().messages
       expect(msgs).toHaveLength(3)
-      expect(msgs[2].id).toBe(3) // newest at end
+      expect(msgs[2]?.id).toBe(3) // newest at end
     })
 
     it('loadMoreMessages prepends older messages', async () => {
@@ -265,10 +267,10 @@ describe('Multi-Account Chat Store', () => {
 
       const msgs = useChatsStore.getState().messages
       // Older messages should come BEFORE existing
-      expect(msgs[0].id).toBe(5)
-      expect(msgs[1].id).toBe(6)
-      expect(msgs[2].id).toBe(10)
-      expect(msgs[3].id).toBe(11)
+      expect(msgs[0]?.id).toBe(5)
+      expect(msgs[1]?.id).toBe(6)
+      expect(msgs[2]?.id).toBe(10)
+      expect(msgs[3]?.id).toBe(11)
     })
   })
 
@@ -303,7 +305,7 @@ describe('Multi-Account Chat Store', () => {
 
       await useChatsStore.getState().loadMoreMessages()
 
-      const call = mockTelegram.getMessages.mock.calls[0]
+      const call = mockTelegram.getMessages.mock.calls[0] as unknown[]
       expect(call[0]).toBe('chat-B1') // chatId
       // accountId should be acc-B (last param)
       expect(call[3]).toBe('acc-B')
@@ -370,10 +372,11 @@ describe('Multi-Account Chat Store', () => {
       const acctTyping = useChatsStore.getState().accountStates['acc-B']?.typingUsers['chat-1']
       expect(acctTyping).toBeDefined()
       expect(acctTyping).toHaveLength(1)
-      expect(acctTyping[0].userId).toBe('user-1')
+      expect(acctTyping?.[0]?.userId).toBe('user-1')
 
       // Also in flat state
       const flatTyping = useChatsStore.getState().typingUsers['chat-1']
+      expect(flatTyping).toBeDefined()
       expect(flatTyping).toHaveLength(1)
     })
 
@@ -381,6 +384,7 @@ describe('Multi-Account Chat Store', () => {
       useChatsStore.getState().addTypingUser('chat-1', 'user-1')
 
       const flatTyping = useChatsStore.getState().typingUsers['chat-1']
+      expect(flatTyping).toBeDefined()
       expect(flatTyping).toHaveLength(1)
     })
   })
@@ -390,13 +394,13 @@ describe('Multi-Account Chat Store', () => {
     it('searches all accounts when multiple exist', async () => {
       setupMultiAccount()
       const resultsA: SearchResult[] = [
-        { id: 1, chatId: 'chat-A1', chatName: 'Alice Chat', text: 'hello', date: 2000, senderName: 'X' } as SearchResult,
+        { id: 1, chatId: 'chat-A1', chatName: 'Alice Chat', text: 'hello', date: 2000, senderName: 'X', out: false, senderId: 'u1' } as SearchResult,
       ]
       const resultsB: SearchResult[] = [
-        { id: 2, chatId: 'chat-B1', chatName: 'Bob Chat', text: 'hello', date: 3000, senderName: 'Y' } as SearchResult,
+        { id: 2, chatId: 'chat-B1', chatName: 'Bob Chat', text: 'hello', date: 3000, senderName: 'Y', out: false, senderId: 'u2' } as SearchResult,
       ]
 
-      mockTelegram.searchMessages.mockImplementation(async (query: string, chatId?: string, limit?: number, accountId?: string) => {
+      mockTelegram.searchMessages.mockImplementation(async (_query: string, _chatId?: string, _limit?: number, accountId?: string) => {
         if (accountId === 'acc-A') return resultsA
         if (accountId === 'acc-B') return resultsB
         return []
@@ -407,8 +411,8 @@ describe('Multi-Account Chat Store', () => {
       const results = useChatsStore.getState().searchResults
       expect(results).toHaveLength(2)
       // Sorted by date descending — newest first
-      expect(results[0].date).toBe(3000)
-      expect(results[1].date).toBe(2000)
+      expect(results[0]?.date).toBe(3000)
+      expect(results[1]?.date).toBe(2000)
     })
   })
 })

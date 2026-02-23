@@ -158,29 +158,30 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
   return (
     <div
       ref={containerRef}
-      className="absolute bottom-full left-0 mb-2 w-[340px] bg-telegram-sidebar border border-telegram-border rounded-xl shadow-xl z-50 overflow-hidden"
+      className="absolute bottom-full left-0 mb-2 w-[340px] bg-popover border border-border rounded-xl shadow-xl z-50 overflow-hidden"
     >
       {/* Search */}
-      <div className="p-2 border-b border-telegram-border">
+      <div className="p-2 border-b border-border">
         <input
           ref={searchRef}
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search emoji..."
-          className="w-full bg-telegram-input text-telegram-text text-sm rounded-lg px-3 py-1.5 border-none focus:outline-none focus:ring-1 focus:ring-telegram-accent placeholder:text-telegram-text-secondary"
+          className="w-full bg-muted text-foreground text-sm rounded-lg px-3 py-1.5 border-none focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
         />
       </div>
 
       {/* Category tabs */}
       {!search && (
-        <div className="flex border-b border-telegram-border">
+        <div className="flex border-b border-border">
           {recent.length > 0 && (
             <button
               onClick={() => setActiveTab(-1)}
-              className={`flex-1 py-1.5 text-center text-lg hover:bg-telegram-hover transition-colors ${
-                activeTab === -1 ? 'bg-telegram-accent/10 border-b-2 border-telegram-accent' : ''
+              className={`flex-1 py-1.5 text-center text-lg hover:bg-accent transition-colors ${
+                activeTab === -1 ? 'bg-primary/10 border-b-2 border-primary' : ''
               }`}
+              aria-label="Recent emojis"
               title="Recent"
             >
               🕐
@@ -190,8 +191,8 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
             <button
               key={cat.label}
               onClick={() => setActiveTab(i)}
-              className={`flex-1 py-1.5 text-center text-lg hover:bg-telegram-hover transition-colors ${
-                activeTab === i ? 'bg-telegram-accent/10 border-b-2 border-telegram-accent' : ''
+              className={`flex-1 py-1.5 text-center text-lg hover:bg-accent transition-colors ${
+                activeTab === i ? 'bg-primary/10 border-b-2 border-primary' : ''
               }`}
               title={cat.label}
             >
@@ -209,7 +210,7 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
               <button
                 key={emoji}
                 onClick={() => handleSelect(emoji)}
-                className="w-9 h-9 flex items-center justify-center text-xl rounded-md hover:bg-telegram-hover transition-colors"
+                className="w-9 h-9 flex items-center justify-center text-xl rounded-md hover:bg-accent transition-colors"
               >
                 {emoji}
               </button>
@@ -217,13 +218,13 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
           </div>
         ) : activeTab === -1 && recent.length > 0 ? (
           <>
-            <p className="text-telegram-text-secondary text-xs px-1 mb-1">Recent</p>
+            <p className="text-muted-foreground text-xs px-1 mb-1">Recent</p>
             <div className="grid grid-cols-8 gap-0.5">
               {recent.map((emoji, i) => (
                 <button
                   key={`${emoji}-${i}`}
                   onClick={() => handleSelect(emoji)}
-                  className="w-9 h-9 flex items-center justify-center text-xl rounded-md hover:bg-telegram-hover transition-colors"
+                  className="w-9 h-9 flex items-center justify-center text-xl rounded-md hover:bg-accent transition-colors"
                 >
                   {emoji}
                 </button>
@@ -232,7 +233,7 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
           </>
         ) : (
           <>
-            <p className="text-telegram-text-secondary text-xs px-1 mb-1">
+            <p className="text-muted-foreground text-xs px-1 mb-1">
               {categories[activeTab]?.label}
             </p>
             <div className="grid grid-cols-8 gap-0.5">
@@ -240,7 +241,7 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
                 <button
                   key={emoji}
                   onClick={() => handleSelect(emoji)}
-                  className="w-9 h-9 flex items-center justify-center text-xl rounded-md hover:bg-telegram-hover transition-colors"
+                  className="w-9 h-9 flex items-center justify-center text-xl rounded-md hover:bg-accent transition-colors"
                 >
                   {emoji}
                 </button>

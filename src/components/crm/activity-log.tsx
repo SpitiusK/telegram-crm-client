@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Spinner } from '@/components/ui/spinner'
 import { ActivityLogEntry } from './activity-log-entry'
 import type { ActivityLogEntryData } from './activity-log-entry'
 
@@ -65,10 +66,10 @@ export function ActivityLog() {
     : entries.filter((e) => e.actionType === filter)
 
   return (
-    <div className="flex-1 flex flex-col bg-telegram-bg overflow-hidden">
+    <div className="flex-1 flex flex-col bg-background overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-telegram-border bg-telegram-sidebar">
-        <h2 className="text-telegram-text text-sm font-semibold mb-2">Activity Log</h2>
+      <div className="px-4 py-3 border-b border-border bg-popover">
+        <h2 className="text-foreground text-sm font-semibold mb-2">Activity Log</h2>
         <div className="flex gap-1 flex-wrap">
           {FILTER_TYPES.map((f) => (
             <button
@@ -76,8 +77,8 @@ export function ActivityLog() {
               onClick={() => setFilter(f.key)}
               className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
                 filter === f.key
-                  ? 'bg-telegram-accent text-white'
-                  : 'bg-telegram-bg text-telegram-text-secondary hover:text-telegram-text'
+                  ? 'bg-primary text-white'
+                  : 'bg-background text-muted-foreground hover:text-foreground'
               }`}
             >
               {f.label}
@@ -90,10 +91,10 @@ export function ActivityLog() {
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
+            <Spinner />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-telegram-text-secondary text-sm">
+          <div className="text-center py-8 text-muted-foreground text-sm">
             No activity yet
           </div>
         ) : (

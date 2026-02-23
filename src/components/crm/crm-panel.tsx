@@ -8,13 +8,14 @@ export function CrmPanel() {
   const { toggleCrmPanel } = useUIStore()
 
   return (
-    <div className="w-[320px] min-w-[320px] bg-telegram-sidebar border-l border-telegram-border flex flex-col">
+    <div className="w-[320px] min-w-[320px] bg-popover border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-14 px-4 flex items-center justify-between border-b border-telegram-border">
-        <h3 className="text-telegram-text text-sm font-semibold">CRM Panel</h3>
+      <div className="h-14 px-4 flex items-center justify-between border-b border-border">
+        <h3 className="text-foreground text-sm font-semibold">CRM Panel</h3>
         <button
           onClick={toggleCrmPanel}
-          className="text-telegram-text-secondary hover:text-telegram-text transition-colors"
+          aria-label="Close CRM panel"
+          className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -27,17 +28,17 @@ export function CrmPanel() {
         {currentDeal ? (
           <>
             <DealInfo deal={currentDeal} contact={currentContact} />
-            <div className="border-t border-telegram-border">
+            <div className="border-t border-border">
               <AiComposer />
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full px-4">
             <div className="text-4xl mb-3">📋</div>
-            <p className="text-telegram-text-secondary text-sm text-center">
+            <p className="text-muted-foreground text-sm text-center">
               No deal linked to this contact
             </p>
-            <p className="text-telegram-text-secondary text-xs text-center mt-1">
+            <p className="text-muted-foreground text-xs text-center mt-1">
               Select a chat with a known contact to see CRM data
             </p>
           </div>

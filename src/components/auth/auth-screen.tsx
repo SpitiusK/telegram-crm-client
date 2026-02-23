@@ -9,12 +9,12 @@ export function AuthScreen() {
   const { step, isAddingAccount, cancelAddAccount } = useAuthStore()
 
   return (
-    <div className="flex items-center justify-center h-screen bg-telegram-bg">
-      <div className="w-[380px] bg-telegram-sidebar rounded-xl p-8 shadow-2xl">
-        <h1 className="text-2xl font-bold text-telegram-text text-center mb-2">
+    <div className="flex items-center justify-center h-screen bg-background">
+      <div className="w-[380px] bg-popover rounded-xl p-8 shadow-2xl">
+        <h1 className="text-2xl font-bold text-foreground text-center mb-2">
           {isAddingAccount ? 'Add Account' : 'Telegram CRM'}
         </h1>
-        <p className="text-telegram-text-secondary text-center text-sm mb-6">
+        <p className="text-muted-foreground text-center text-sm mb-6">
           {step === '2fa_pending'
             ? 'Enter your cloud password'
             : isAddingAccount
@@ -27,12 +27,12 @@ export function AuthScreen() {
         ) : (
           <>
             {/* Tab switcher */}
-            <div className="flex mb-6 bg-telegram-bg rounded-lg p-1">
+            <div className="flex mb-6 bg-background rounded-lg p-1">
               <button
                 className={`flex-1 py-2 text-sm rounded-md transition-colors ${
                   authMode === 'qr'
-                    ? 'bg-telegram-accent text-white'
-                    : 'text-telegram-text-secondary hover:text-telegram-text'
+                    ? 'bg-primary text-white'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => setAuthMode('qr')}
               >
@@ -41,8 +41,8 @@ export function AuthScreen() {
               <button
                 className={`flex-1 py-2 text-sm rounded-md transition-colors ${
                   authMode === 'phone'
-                    ? 'bg-telegram-accent text-white'
-                    : 'text-telegram-text-secondary hover:text-telegram-text'
+                    ? 'bg-primary text-white'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => setAuthMode('phone')}
               >
@@ -57,7 +57,7 @@ export function AuthScreen() {
         {isAddingAccount && (
           <button
             onClick={() => void cancelAddAccount()}
-            className="w-full mt-4 py-2 text-sm text-telegram-text-secondary hover:text-telegram-text transition-colors"
+            className="w-full mt-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel
           </button>

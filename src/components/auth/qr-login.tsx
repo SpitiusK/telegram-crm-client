@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useAuthStore } from '../../stores/auth'
+import { Spinner } from '@/components/ui/spinner'
 
 export function QRLogin() {
   const { qrUrl, error, requestQR } = useAuthStore()
@@ -14,24 +15,24 @@ export function QRLogin() {
         {qrUrl ? (
           <img src={qrUrl} alt="QR Code" className="w-full h-full" />
         ) : (
-          <div className="w-8 h-8 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
+          <Spinner size="lg" />
         )}
       </div>
 
       <div className="text-center">
-        <p className="text-telegram-text text-sm font-medium">Scan with Telegram</p>
-        <p className="text-telegram-text-secondary text-xs mt-1">
+        <p className="text-foreground text-sm font-medium">Scan with Telegram</p>
+        <p className="text-muted-foreground text-xs mt-1">
           Open Telegram on your phone → Settings → Devices → Link Desktop Device
         </p>
       </div>
 
       {error && (
-        <p className="text-red-400 text-xs text-center">{error}</p>
+        <p className="text-destructive text-xs text-center">{error}</p>
       )}
 
       <button
         onClick={() => void requestQR()}
-        className="text-telegram-accent text-sm hover:underline"
+        className="text-primary text-sm hover:underline"
       >
         Refresh QR Code
       </button>

@@ -20,10 +20,10 @@ export function TwoFactor() {
     <div className="flex flex-col gap-4">
       <div className="text-center">
         <div className="text-4xl mb-2">🔐</div>
-        <p className="text-telegram-text text-sm font-medium">
+        <p className="text-foreground text-sm font-medium">
           Two-Factor Authentication
         </p>
-        <p className="text-telegram-text-secondary text-xs mt-1">
+        <p className="text-muted-foreground text-xs mt-1">
           Enter your cloud password
         </p>
       </div>
@@ -34,20 +34,20 @@ export function TwoFactor() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
-        className="w-full px-4 py-3 bg-telegram-input text-telegram-text rounded-lg border border-telegram-border focus:border-telegram-accent focus:outline-none text-sm"
+        className="w-full px-4 py-3 bg-muted text-foreground rounded-lg border border-border focus:border-primary focus:outline-none text-sm"
         autoFocus
       />
 
       <button
         onClick={() => void handleSubmit()}
         disabled={!password.trim() || isSubmitting}
-        className="w-full py-3 bg-telegram-accent text-white rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSubmitting ? 'Verifying...' : 'Submit'}
       </button>
 
       {error && (
-        <p className="text-red-400 text-xs text-center">{error}</p>
+        <p className="text-destructive text-xs text-center">{error}</p>
       )}
     </div>
   )

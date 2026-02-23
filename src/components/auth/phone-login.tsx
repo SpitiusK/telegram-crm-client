@@ -28,20 +28,20 @@ export function PhoneLogin() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendCode()}
-            className="w-full px-4 py-3 bg-telegram-input text-telegram-text rounded-lg border border-telegram-border focus:border-telegram-accent focus:outline-none text-sm"
+            className="w-full px-4 py-3 bg-muted text-foreground rounded-lg border border-border focus:border-primary focus:outline-none text-sm"
           />
           <button
             onClick={handleSendCode}
             disabled={!phone.trim()}
-            className="w-full py-3 bg-telegram-accent text-white rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Send Code
           </button>
         </>
       ) : (
         <>
-          <p className="text-telegram-text-secondary text-sm text-center">
-            Code sent to <span className="text-telegram-text">{phone}</span>
+          <p className="text-muted-foreground text-sm text-center">
+            Code sent to <span className="text-foreground">{phone}</span>
           </p>
           <input
             type="text"
@@ -50,12 +50,12 @@ export function PhoneLogin() {
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
             maxLength={6}
-            className="w-full px-4 py-3 bg-telegram-input text-telegram-text rounded-lg border border-telegram-border focus:border-telegram-accent focus:outline-none text-sm text-center tracking-[0.5em] text-lg"
+            className="w-full px-4 py-3 bg-muted text-foreground rounded-lg border border-border focus:border-primary focus:outline-none text-sm text-center tracking-[0.5em] text-lg"
           />
           <button
             onClick={handleVerify}
             disabled={!code.trim()}
-            className="w-full py-3 bg-telegram-accent text-white rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Verify
           </button>
@@ -63,7 +63,7 @@ export function PhoneLogin() {
       )}
 
       {error && (
-        <p className="text-red-400 text-xs text-center">{error}</p>
+        <p className="text-destructive text-xs text-center">{error}</p>
       )}
     </div>
   )

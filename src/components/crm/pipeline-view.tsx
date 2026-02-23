@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useCrmStore } from '../../stores/crm'
+import { Spinner } from '@/components/ui/spinner'
 import type { BitrixDeal } from '../../types'
 
 interface PipelineStage {
@@ -22,15 +23,15 @@ function DealCard({ deal, onDragStart }: { deal: BitrixDeal; onDragStart: (e: Re
     <div
       draggable
       onDragStart={(e) => onDragStart(e, deal)}
-      className="bg-telegram-sidebar rounded-lg p-3 cursor-grab active:cursor-grabbing hover:bg-telegram-hover transition-colors border border-telegram-border"
+      className="bg-popover rounded-lg p-3 cursor-grab active:cursor-grabbing hover:bg-accent transition-colors border border-border"
     >
-      <p className="text-telegram-text text-sm font-medium truncate">{deal.TITLE}</p>
+      <p className="text-foreground text-sm font-medium truncate">{deal.TITLE}</p>
       {deal.OPPORTUNITY && Number(deal.OPPORTUNITY) > 0 && (
-        <p className="text-telegram-accent text-xs mt-1">
+        <p className="text-primary text-xs mt-1">
           {Number(deal.OPPORTUNITY).toLocaleString('ru-RU')} ₽
         </p>
       )}
-      <p className="text-telegram-text-secondary text-[11px] mt-1">
+      <p className="text-muted-foreground text-[11px] mt-1">
         {new Date(deal.DATE_CREATE).toLocaleDateString('ru-RU')}
       </p>
     </div>
@@ -53,7 +54,7 @@ function StageColumn({
   return (
     <div
       className={`flex-1 min-w-[200px] max-w-[280px] flex flex-col rounded-xl transition-colors ${
-        isDragOver ? 'bg-telegram-accent/10' : 'bg-telegram-bg'
+        isDragOver ? 'bg-primary/10' : 'bg-background'
       }`}
       onDragOver={(e) => {
         e.preventDefault()
@@ -67,10 +68,10 @@ function StageColumn({
       }}
     >
       {/* Column header */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-telegram-border">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
         <div className={`w-3 h-3 rounded-full ${stage.color}`} />
-        <span className="text-telegram-text text-xs font-medium truncate">{stage.label}</span>
-        <span className="text-telegram-text-secondary text-[11px] ml-auto">{deals.length}</span>
+        <span className="text-foreground text-xs font-medium truncate">{stage.label}</span>
+        <span className="text-muted-foreground text-[11px] ml-auto">{deals.length}</span>
       </div>
 
       {/* Cards */}
@@ -79,7 +80,7 @@ function StageColumn({
           <DealCard key={deal.ID} deal={deal} onDragStart={onDragStart} />
         ))}
         {deals.length === 0 && (
-          <p className="text-telegram-text-secondary text-xs text-center py-4">No deals</p>
+          <p className="text-muted-foreground text-xs text-center py-4">No deals</p>
         )}
       </div>
     </div>
@@ -110,22 +111,22 @@ export function PipelineView() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-telegram-bg">
-        <div className="w-8 h-8 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-telegram-bg overflow-hidden">
+    <div className="flex-1 flex flex-col bg-background overflow-hidden">
       {/* Header */}
-      <div className="h-14 px-6 flex items-center justify-between border-b border-telegram-border bg-telegram-sidebar">
-        <h2 className="text-telegram-text text-sm font-semibold">Pipeline</h2>
+      <div className="h-14 px-6 flex items-center justify-between border-b border-border bg-popover">
+        <h2 className="text-foreground text-sm font-semibold">Pipeline</h2>
         <div className="flex items-center gap-2">
-          <span className="text-telegram-text-secondary text-xs">{deals.length} deals</span>
+          <span className="text-muted-foreground text-xs">{deals.length} deals</span>
           <button
             onClick={() => void loadDeals()}
-            className="text-telegram-text-secondary hover:text-telegram-text text-xs px-2 py-1 rounded hover:bg-telegram-hover transition-colors"
+            className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent transition-colors"
           >
             ↻ Refresh
           </button>

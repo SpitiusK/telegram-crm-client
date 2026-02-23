@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useCrmStore } from '../../stores/crm'
+import { Spinner } from '@/components/ui/spinner'
 import type { BitrixDeal } from '../../types'
 import { DealCard } from './deal-card'
 
@@ -42,17 +43,17 @@ export function PipelineBoard() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-telegram-bg">
-        <div className="w-8 h-8 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-telegram-bg overflow-hidden">
-      <div className="h-12 px-4 flex items-center border-b border-telegram-border bg-telegram-sidebar">
-        <h2 className="text-telegram-text text-sm font-semibold">Pipeline</h2>
-        <span className="text-telegram-text-secondary text-xs ml-auto">
+    <div className="flex-1 flex flex-col bg-background overflow-hidden">
+      <div className="h-12 px-4 flex items-center border-b border-border bg-popover">
+        <h2 className="text-foreground text-sm font-semibold">Pipeline</h2>
+        <span className="text-muted-foreground text-xs ml-auto">
           {deals.length} deals
         </span>
       </div>
@@ -63,13 +64,13 @@ export function PipelineBoard() {
           return (
             <div
               key={stage.stageId}
-              className="min-w-[220px] max-w-[260px] flex-shrink-0 flex flex-col bg-telegram-sidebar rounded-lg"
+              className="min-w-[220px] max-w-[260px] flex-shrink-0 flex flex-col bg-popover rounded-lg"
             >
-              <div className="flex items-center justify-between px-3 py-2 border-b border-telegram-border">
-                <span className="text-telegram-text text-xs font-medium truncate">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                <span className="text-foreground text-xs font-medium truncate">
                   {stage.label}
                 </span>
-                <span className="text-telegram-text-secondary text-xs ml-2">
+                <span className="text-muted-foreground text-xs ml-2">
                   {stageDeals.length}
                 </span>
               </div>
@@ -79,7 +80,7 @@ export function PipelineBoard() {
                   <DealCard key={deal.ID} deal={deal} />
                 ))}
                 {stageDeals.length === 0 && (
-                  <p className="text-telegram-text-secondary text-xs text-center py-4">
+                  <p className="text-muted-foreground text-xs text-center py-4">
                     No deals
                   </p>
                 )}

@@ -9,44 +9,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'CMD=$(jq -r .tool_input.command); if echo \"$CMD\" | grep -qE \"rm -rf|drop table|truncate|format\"; then jq -n \"{hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\\"Destructive command blocked\\\"}}\"; else exit 0; fi'"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'CMD=$(jq -r .tool_input.command); if echo \"$CMD\" | grep -q \"git commit\"; then cd /mnt/c/Users/User/Desktop/Projects/telegram-crm-client && npx eslint . --quiet 2>&1 | tail -5; if [ ${PIPESTATUS[0]} -ne 0 ]; then jq -n \"{hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\\"Lint errors must be fixed before commit\\\"}}\"; else exit 0; fi; else exit 0; fi'"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'FILE=$(jq -r .tool_input.file_path // .tool_input.path); if echo \"$FILE\" | grep -qE \"\\.(ts|tsx|js|jsx)$\"; then cd /mnt/c/Users/User/Desktop/Projects/telegram-crm-client && npx prettier --write \"$FILE\" 2>/dev/null || true; fi'"
-          }
-        ]
-      },
-      {
-        "type": "command",
-        "command": "bash -c 'echo \"$(date +%H:%M:%S) $(jq -r .tool_name): $(jq -r .tool_input | head -c 100)\" >> /mnt/c/Users/User/Desktop/Projects/telegram-crm-client/.claude/progress.log'"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'cd /mnt/c/Users/User/Desktop/Projects/telegram-crm-client && npx tsc --noEmit 2>&1 | tail -10; exit ${PIPESTATUS[0]}'"
+            "command": "bash -c 'CMD=$(jq -r .tool_input.command); if echo \"$CMD\" | grep -q \"git commit\"; then cd /c/Users/User/Desktop/Projects/telegram-crm-client && npx eslint src/ electron/ --quiet 2>&1 | tail -5; if [ ${PIPESTATUS[0]} -ne 0 ]; then jq -n \"{hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\\"Lint errors must be fixed before commit\\\"}}\"; else exit 0; fi; else exit 0; fi'"
           }
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "coderabbit@claude-plugins-official": true
   }
 }

@@ -3,11 +3,35 @@
 @tailwind utilities;
 
 @layer base {
-  * {
-    @apply border-gray-700;
+  :root {
+    --background: 210 30% 13%;
+    --foreground: 0 0% 96%;
+    --card: 211 36% 15%;
+    --card-foreground: 0 0% 96%;
+    --popover: 215 40% 9%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 208 84% 68%;
+    --primary-foreground: 210 30% 13%;
+    --secondary: 210 32% 17%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 214 26% 19%;
+    --muted-foreground: 211 17% 52%;
+    --accent: 210 32% 17%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 96%;
+    --border: 210 34% 18%;
+    --input: 214 26% 19%;
+    --ring: 208 84% 68%;
+    --radius: 0.375rem;
   }
+
+  * {
+    @apply border-border;
+  }
+
   body {
-    @apply bg-telegram-bg text-telegram-text;
+    @apply bg-background text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 }

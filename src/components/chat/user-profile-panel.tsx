@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { UserProfile } from '../../types'
+import { Spinner } from '@/components/ui/spinner'
 
 interface UserProfilePanelProps {
   userId: string
@@ -21,13 +22,14 @@ export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
   }, [userId])
 
   return (
-    <div className="w-[320px] min-w-[320px] bg-telegram-sidebar border-l border-telegram-border flex flex-col">
+    <div className="w-[320px] min-w-[320px] bg-popover border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-14 px-4 flex items-center justify-between border-b border-telegram-border">
-        <h3 className="text-telegram-text text-sm font-semibold">Profile</h3>
+      <div className="h-14 px-4 flex items-center justify-between border-b border-border">
+        <h3 className="text-foreground text-sm font-semibold">Profile</h3>
         <button
           onClick={onClose}
-          className="text-telegram-text-secondary hover:text-telegram-text transition-colors"
+          aria-label="Close profile"
+          className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -37,7 +39,7 @@ export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
+          <Spinner size="lg" />
         </div>
       ) : profile ? (
         <div className="flex-1 overflow-y-auto scrollbar-thin">
@@ -46,15 +48,15 @@ export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
             {profile.avatar ? (
               <img src={profile.avatar} alt="" className="w-[120px] h-[120px] rounded-full object-cover mb-4" />
             ) : (
-              <div className="w-[120px] h-[120px] rounded-full bg-telegram-accent flex items-center justify-center text-white text-3xl font-medium mb-4">
+              <div className="w-[120px] h-[120px] rounded-full bg-primary flex items-center justify-center text-white text-3xl font-medium mb-4">
                 {(profile.firstName[0] ?? '').toUpperCase()}
               </div>
             )}
-            <h2 className="text-telegram-text text-lg font-semibold">
+            <h2 className="text-foreground text-lg font-semibold">
               {profile.firstName} {profile.lastName}
             </h2>
             {profile.lastSeen && profile.lastSeen !== 'unknown' && (
-              <p className="text-telegram-text-secondary text-xs mt-1">
+              <p className="text-muted-foreground text-xs mt-1">
                 {profile.lastSeen === 'online' ? '🟢 online'
                   : profile.lastSeen === 'recently' ? 'last seen recently'
                   : `last seen ${new Date(profile.lastSeen).toLocaleString('ru-RU')}`}
@@ -63,35 +65,35 @@ export function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
           </div>
 
           {/* Info rows */}
-          <div className="border-t border-telegram-border px-4 py-3 space-y-3">
+          <div className="border-t border-border px-4 py-3 space-y-3">
             {profile.phone && (
               <div>
-                <p className="text-telegram-accent text-sm">+{profile.phone}</p>
-                <p className="text-telegram-text-secondary text-xs">Phone</p>
+                <p className="text-primary text-sm">+{profile.phone}</p>
+                <p className="text-muted-foreground text-xs">Phone</p>
               </div>
             )}
             {profile.username && (
               <div>
-                <p className="text-telegram-accent text-sm">@{profile.username}</p>
-                <p className="text-telegram-text-secondary text-xs">Username</p>
+                <p className="text-primary text-sm">@{profile.username}</p>
+                <p className="text-muted-foreground text-xs">Username</p>
               </div>
             )}
             {profile.bio && (
               <div>
-                <p className="text-telegram-text text-sm">{profile.bio}</p>
-                <p className="text-telegram-text-secondary text-xs">Bio</p>
+                <p className="text-foreground text-sm">{profile.bio}</p>
+                <p className="text-muted-foreground text-xs">Bio</p>
               </div>
             )}
             {profile.isBot && (
               <div>
-                <p className="text-telegram-text text-sm">🤖 Bot</p>
+                <p className="text-foreground text-sm">🤖 Bot</p>
               </div>
             )}
           </div>
         </div>
       ) : (
         <div className="flex items-center justify-center py-12">
-          <p className="text-telegram-text-secondary text-sm">Profile not available</p>
+          <p className="text-muted-foreground text-sm">Profile not available</p>
         </div>
       )}
     </div>

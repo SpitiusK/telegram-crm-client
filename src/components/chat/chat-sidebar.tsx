@@ -3,18 +3,15 @@ import { useChatsStore } from '../../stores/chats'
 import { useUIStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
 import type { ChatFolder } from '../../stores/chats'
-import type { TelegramDialog, TelegramAccount, SearchResult } from '../../types'
+import type { TelegramDialog, SearchResult } from '../../types'
 import { ChatListItem } from './chat-list-item'
+import { AccountSwitcher } from './account-switcher'
+import { SearchResultItem } from './search-results'
+import { Spinner } from '../ui/spinner'
 
 const ACCOUNT_COLORS = [
-  '#3b82f6', // blue
-  '#22c55e', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#f97316', // orange
+  '#3b82f6', '#22c55e', '#f59e0b', '#ef4444',
+  '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
 ]
 
 const BUILTIN_TABS: { key: ChatFolder; label: string }[] = [
@@ -45,143 +42,26 @@ function matchesFolder(dialog: TelegramDialog, folder: ChatFolder): boolean {
   }
 }
 
-function formatSearchDate(timestamp: number): string {
-  const date = new Date(timestamp * 1000)
-  const now = new Date()
-  const isToday = date.toDateString() === now.toDateString()
-  if (isToday) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
-}
-
-function highlightMatch(text: string, query: string): React.ReactNode {
-  if (!query) return text
-  const idx = text.toLowerCase().indexOf(query.toLowerCase())
-  if (idx === -1) return text
-  return (
-    <>
-      {text.slice(0, idx)}
-      <span className="bg-telegram-accent/30 text-telegram-text font-medium">{text.slice(idx, idx + query.length)}</span>
-      {text.slice(idx + query.length)}
-    </>
-  )
-}
-
-function AccountAvatar({ account, isActive, onClick }: { account: TelegramAccount; isActive: boolean; onClick: () => void }) {
-  const initial = account.firstName[0] ?? '?'
+function FolderTab({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      title={`${account.firstName}${account.username ? ` (@${account.username})` : ''}`}
-      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-        isActive
-          ? 'ring-2 ring-telegram-accent ring-offset-1 ring-offset-telegram-sidebar'
-          : 'opacity-60 hover:opacity-100'
+      className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors relative ${
+        isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
       }`}
     >
-      {account.avatar ? (
-        <img src={account.avatar} alt={account.firstName} className="w-8 h-8 rounded-full object-cover" />
-      ) : (
-        <span className="w-8 h-8 rounded-full bg-telegram-accent/20 text-telegram-accent flex items-center justify-center">
-          {initial}
-        </span>
-      )}
-    </button>
-  )
-}
-
-function AccountSwitcher() {
-  const { accounts, activeAccountId, switchAccount, startAddAccount } = useAuthStore()
-  const { loadDialogs } = useChatsStore()
-
-  if (accounts.length <= 1 && accounts.length > 0) {
-    // Single account — show minimal strip with just "+" button
-    return (
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-telegram-border">
-        <AccountAvatar
-          account={accounts[0]!}
-          isActive={true}
-          onClick={() => { /* already active */ }}
-        />
-        <button
-          onClick={() => void startAddAccount()}
-          title="Add account"
-          className="flex-shrink-0 w-8 h-8 rounded-full bg-telegram-hover flex items-center justify-center text-telegram-text-secondary hover:text-telegram-text transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      </div>
-    )
-  }
-
-  if (accounts.length === 0) return null
-
-  const handleSwitch = (id: string) => {
-    void (async () => {
-      await switchAccount(id)
-      await loadDialogs()
-    })()
-  }
-
-  return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-telegram-border overflow-x-auto scrollbar-none">
-      {accounts.map((account) => (
-        <AccountAvatar
-          key={account.id}
-          account={account}
-          isActive={account.id === activeAccountId}
-          onClick={() => handleSwitch(account.id)}
-        />
-      ))}
-      <button
-        onClick={() => void startAddAccount()}
-        title="Add account"
-        className="flex-shrink-0 w-8 h-8 rounded-full bg-telegram-hover flex items-center justify-center text-telegram-text-secondary hover:text-telegram-text transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
-    </div>
-  )
-}
-
-function SearchResultItem({ result, query, onClick, accountColor }: { result: SearchResult; query: string; onClick: () => void; accountColor?: string }) {
-  const snippet = result.text.length > 80 ? result.text.slice(0, 80) + '...' : result.text
-  return (
-    <button
-      onClick={onClick}
-      className="w-full px-3 py-2.5 flex flex-col gap-0.5 text-left hover:bg-telegram-hover transition-colors"
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-telegram-text text-sm font-medium truncate flex items-center gap-1.5">
-          {accountColor && (
-            <span
-              className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: accountColor }}
-            />
-          )}
-          {result.chatTitle || result.senderName || 'Chat'}
-        </span>
-        <span className="text-telegram-text-secondary text-[10px] flex-shrink-0 ml-2">
-          {formatSearchDate(result.date)}
-        </span>
-      </div>
-      {result.chatTitle && result.senderName && (
-        <span className="text-telegram-text-secondary text-xs truncate">{result.senderName}</span>
-      )}
-      <span className="text-telegram-text-secondary text-xs truncate">
-        {highlightMatch(snippet, query)}
-      </span>
+      {label}
+      {isActive && <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />}
     </button>
   )
 }
 
 export function ChatSidebar() {
-  const { dialogs, isLoadingDialogs, activeFolder, setActiveFolder, pinnedChats, searchResults, isSearching, searchMessages, clearSearch, setActiveChat, userFolders, archivedDialogs, isLoadingArchive, loadArchivedDialogs } = useChatsStore()
+  const {
+    dialogs, isLoadingDialogs, activeFolder, setActiveFolder, pinnedChats,
+    searchResults, isSearching, searchMessages, clearSearch, setActiveChat,
+    userFolders, archivedDialogs, isLoadingArchive, loadArchivedDialogs,
+  } = useChatsStore()
   const { setShowSettings } = useUIStore()
   const { accounts } = useAuthStore()
   const [search, setSearch] = useState('')
@@ -198,16 +78,12 @@ export function ChatSidebar() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => triggerSearch(search), 500)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [search, triggerSearch])
 
   const handleSearchChange = (value: string) => {
     setSearch(value)
-    if (!value.trim()) {
-      clearSearch()
-    }
+    if (!value.trim()) clearSearch()
   }
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -215,10 +91,7 @@ export function ChatSidebar() {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       triggerSearch(search)
     }
-    if (e.key === 'Escape') {
-      setSearch('')
-      clearSearch()
-    }
+    if (e.key === 'Escape') { setSearch(''); clearSearch() }
   }
 
   const handleResultClick = (result: SearchResult) => {
@@ -228,19 +101,13 @@ export function ChatSidebar() {
   }
 
   const filtered = useMemo(() => {
-    // Archive tab uses its own dialog list
     if (activeFolder === 'archive') {
-      let result = archivedDialogs
-      if (search.trim()) {
-        const q = search.toLowerCase()
-        result = result.filter((d) => d.title.toLowerCase().includes(q))
-      }
-      return result
+      const q = search.toLowerCase()
+      return search.trim() ? archivedDialogs.filter((d) => d.title.toLowerCase().includes(q)) : archivedDialogs
     }
 
     let result = dialogs
 
-    // User folder: filter by includePeers
     if (activeFolder.startsWith('folder:')) {
       const folderId = Number(activeFolder.slice(7))
       const folder = userFolders.find((f) => f.id === folderId)
@@ -256,22 +123,22 @@ export function ChatSidebar() {
       const q = search.toLowerCase()
       result = result.filter((d) => d.title.toLowerCase().includes(q))
     }
-    // Sort pinned chats first, then by date
-    result = [...result].sort((a, b) => {
+
+    return [...result].sort((a, b) => {
       const aPinned = pinnedChats.has(a.id)
       const bPinned = pinnedChats.has(b.id)
       if (aPinned && !bPinned) return -1
       if (!aPinned && bPinned) return 1
       return b.lastMessageDate - a.lastMessageDate
     })
-    return result
   }, [dialogs, archivedDialogs, search, activeFolder, pinnedChats, userFolders])
 
   const accountColorMap = useMemo(() => {
     if (accounts.length <= 1) return null
     const map = new Map<string, string>()
     accounts.forEach((acc, i) => {
-      map.set(acc.id, ACCOUNT_COLORS[i % ACCOUNT_COLORS.length]!)
+      const color = ACCOUNT_COLORS[i % ACCOUNT_COLORS.length]
+      if (color) map.set(acc.id, color)
     })
     return map
   }, [accounts])
@@ -280,19 +147,13 @@ export function ChatSidebar() {
   const showSearchResults = hasSearchQuery && (searchResults.length > 0 || isSearching)
 
   return (
-    <div className="w-[280px] min-w-[280px] bg-telegram-sidebar flex flex-col border-r border-telegram-border">
-      {/* Account switcher */}
+    <div className="w-[280px] min-w-[280px] bg-popover flex flex-col border-r border-border">
       <AccountSwitcher />
 
-      {/* Header */}
-      <div className="p-3 border-b border-telegram-border">
+      {/* Search */}
+      <div className="p-3 border-b border-border">
         <div className="relative">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-telegram-text-secondary"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -302,12 +163,13 @@ export function ChatSidebar() {
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            className="w-full pl-10 pr-8 py-2 bg-telegram-input text-telegram-text text-sm rounded-lg border-none focus:outline-none focus:ring-1 focus:ring-telegram-accent placeholder:text-telegram-text-secondary"
+            className="w-full pl-10 pr-8 py-2 bg-muted text-foreground text-sm rounded-lg border-none focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
           />
           {search && (
             <button
               onClick={() => { setSearch(''); clearSearch() }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-telegram-text-secondary hover:text-telegram-text"
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -318,90 +180,38 @@ export function ChatSidebar() {
       </div>
 
       {/* Folder tabs */}
-      <div className="flex overflow-x-auto scrollbar-none border-b border-telegram-border">
+      <div className="flex overflow-x-auto scrollbar-none border-b border-border">
         {BUILTIN_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveFolder(tab.key)}
-            className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors relative ${
-              activeFolder === tab.key
-                ? 'text-telegram-accent'
-                : 'text-telegram-text-secondary hover:text-telegram-text'
-            }`}
-          >
-            {tab.label}
-            {activeFolder === tab.key && (
-              <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-telegram-accent rounded-full" />
-            )}
-          </button>
+          <FolderTab key={tab.key} label={tab.label} isActive={activeFolder === tab.key} onClick={() => setActiveFolder(tab.key)} />
         ))}
         {userFolders.map((folder) => {
           const key: ChatFolder = `folder:${folder.id}`
-          return (
-            <button
-              key={key}
-              onClick={() => setActiveFolder(key)}
-              className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors relative ${
-                activeFolder === key
-                  ? 'text-telegram-accent'
-                  : 'text-telegram-text-secondary hover:text-telegram-text'
-              }`}
-            >
-              {folder.emoji ? `${folder.emoji} ` : ''}{folder.title}
-              {activeFolder === key && (
-                <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-telegram-accent rounded-full" />
-              )}
-            </button>
-          )
+          const label = folder.emoji ? `${folder.emoji} ${folder.title}` : folder.title
+          return <FolderTab key={key} label={label} isActive={activeFolder === key} onClick={() => setActiveFolder(key)} />
         })}
-        <button
-          onClick={() => {
-            setActiveFolder('archive')
-            void loadArchivedDialogs()
-          }}
-          className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors relative ${
-            activeFolder === 'archive'
-              ? 'text-telegram-accent'
-              : 'text-telegram-text-secondary hover:text-telegram-text'
-          }`}
-        >
-          Archive
-          {activeFolder === 'archive' && (
-            <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-telegram-accent rounded-full" />
-          )}
-        </button>
+        <FolderTab label="Archive" isActive={activeFolder === 'archive'} onClick={() => { setActiveFolder('archive'); void loadArchivedDialogs() }} />
       </div>
 
       {/* Dialog list */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {isLoadingDialogs || (activeFolder === 'archive' && isLoadingArchive) ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
-          </div>
+          <div className="flex items-center justify-center py-8"><Spinner /></div>
         ) : filtered.length === 0 && !showSearchResults ? (
-          <div className="text-center py-8 text-telegram-text-secondary text-sm">
+          <div className="text-center py-8 text-muted-foreground text-sm">
             {search ? 'No chats found' : 'No chats yet'}
           </div>
         ) : (
           <>
             {filtered.map((dialog) => (
-              <ChatListItem
-                key={dialog.id}
-                dialog={dialog}
-                accountColor={accountColorMap && dialog.accountId ? accountColorMap.get(dialog.accountId) : undefined}
-              />
+              <ChatListItem key={dialog.id} dialog={dialog} accountColor={accountColorMap && dialog.accountId ? accountColorMap.get(dialog.accountId) : undefined} />
             ))}
-
-            {/* Global message search results */}
             {showSearchResults && (
-              <div className="border-t border-telegram-border">
-                <div className="px-3 py-2 text-xs font-medium text-telegram-text-secondary uppercase tracking-wide">
-                  Messages
-                </div>
+              <div className="border-t border-border">
+                <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Messages</div>
                 {isSearching ? (
                   <div className="flex items-center justify-center py-4">
-                    <div className="w-4 h-4 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
-                    <span className="ml-2 text-telegram-text-secondary text-xs">Searching...</span>
+                    <Spinner size="sm" />
+                    <span className="ml-2 text-muted-foreground text-xs">Searching...</span>
                   </div>
                 ) : (
                   searchResults.map((result) => (
@@ -416,9 +226,8 @@ export function ChatSidebar() {
                 )}
               </div>
             )}
-
             {hasSearchQuery && !isSearching && searchResults.length === 0 && filtered.length > 0 && (
-              <div className="border-t border-telegram-border px-3 py-3 text-center text-telegram-text-secondary text-xs">
+              <div className="border-t border-border px-3 py-3 text-center text-muted-foreground text-xs">
                 No messages found for &ldquo;{search.trim()}&rdquo;
               </div>
             )}
@@ -426,11 +235,11 @@ export function ChatSidebar() {
         )}
       </div>
 
-      {/* Settings button */}
-      <div className="p-2 border-t border-telegram-border">
+      {/* Settings */}
+      <div className="p-2 border-t border-border">
         <button
           onClick={() => setShowSettings(true)}
-          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-telegram-text-secondary hover:text-telegram-text hover:bg-telegram-hover rounded-md transition-colors"
+          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

@@ -113,7 +113,7 @@ export function MessageContextMenu({ message, x, y, onReply, onEdit, onDelete, o
   return createPortal(
     <div
       ref={menuRef}
-      className="fixed z-50 bg-telegram-sidebar border border-telegram-border rounded-xl shadow-xl py-1.5 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-50 bg-popover border border-border rounded-xl shadow-xl py-1.5 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
       style={{ left: x, top: y }}
     >
       {visibleItems.map((item) => (
@@ -122,8 +122,8 @@ export function MessageContextMenu({ message, x, y, onReply, onEdit, onDelete, o
           onClick={item.onClick}
           className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
             item.label === 'Delete'
-              ? 'text-red-400 hover:bg-red-500/10'
-              : 'text-telegram-text hover:bg-telegram-accent/10'
+              ? 'text-destructive hover:bg-destructive/10'
+              : 'text-foreground hover:bg-primary/10'
           }`}
         >
           <span className="opacity-70">{item.icon}</span>

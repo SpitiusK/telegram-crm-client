@@ -3,14 +3,42 @@ import { IpcMain } from 'electron'
 const WEBHOOK_URL = process.env.BITRIX24_WEBHOOK_URL ?? ''
 
 async function bitrixCall(method: string, params: Record<string, unknown> = {}): Promise<unknown> {
+  if (!WEBHOOK_URL) {
+    throw new Error('BITRIX24_WEBHOOK_URL is not configured')
+  }
+
   const url = `${WEBHOOK_URL}/${method}.json`
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  })
-  const data = (await response.json()) as { result: unknown }
-  return data.result
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown network error'
+    throw new Error(`Bitrix24 network error: ${message}`, { cause: err })
+  }
+
+  if (!response.ok) {
+    throw new Error(`Bitrix24 HTTP ${response.status}: ${response.statusText}`)
+  }
+
+  let data: unknown
+  try {
+    data = await response.json()
+  } catch {
+    throw new Error('Bitrix24 returned invalid JSON')
+  }
+
+  const result = data as { result?: unknown; error?: string; error_description?: string }
+
+  if (result.error) {
+    throw new Error(`Bitrix24 API error: ${result.error} — ${result.error_description ?? 'no details'}`)
+  }
+
+  return result.result
 }
 
 export function setupCrmIPC(ipcMain: IpcMain): void {

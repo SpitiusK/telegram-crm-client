@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { useChatsStore } from '../../stores/chats'
 import { MessageBubble } from './message-bubble'
 import { MessageContextMenu } from './message-context-menu'
+import { Spinner } from '@/components/ui/spinner'
 import type { TelegramMessage } from '../../types'
 
 const BOTTOM_THRESHOLD = 100
@@ -167,7 +168,7 @@ export function MessageList() {
   if (isLoadingMessages) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
+        <Spinner size="lg" />
       </div>
     )
   }
@@ -175,7 +176,7 @@ export function MessageList() {
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-telegram-text-secondary text-sm">No messages yet</p>
+        <p className="text-muted-foreground text-sm">No messages yet</p>
       </div>
     )
   }
@@ -190,7 +191,7 @@ export function MessageList() {
         <div className="max-w-[700px] mx-auto flex flex-col gap-1">
           {isLoadingMoreMessages && (
             <div className="flex justify-center py-2">
-              <div className="w-5 h-5 border-2 border-telegram-accent border-t-transparent rounded-full animate-spin" />
+              <Spinner />
             </div>
           )}
           {messages.map((msg) => (
@@ -202,11 +203,11 @@ export function MessageList() {
       {showScrollButton && (
         <button
           onClick={() => scrollToBottom('smooth')}
-          className="absolute bottom-4 right-4 bg-telegram-accent text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center hover:bg-telegram-accent/90 transition-opacity z-10"
+          className="absolute bottom-4 right-4 bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center hover:bg-primary/90 transition-opacity z-10"
           aria-label="Scroll to bottom"
         >
           {newMessageCount > 0 && (
-            <span className="absolute -top-2 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+            <span className="absolute -top-2 -right-1 bg-destructive text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
               {newMessageCount > 99 ? '99+' : newMessageCount}
             </span>
           )}

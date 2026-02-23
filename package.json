@@ -19,12 +19,17 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@radix-ui/react-slot": "^1.2.4",
     "@rollup/rollup-linux-x64-gnu": "^4.59.0",
     "better-sqlite3": "^11.8.1",
-    "googleapis": "^144.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.575.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss-animate": "^1.0.7",
     "telegram": "^2.26.22",
     "zustand": "^5.0.3"
   },

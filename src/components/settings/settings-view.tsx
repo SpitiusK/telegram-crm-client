@@ -24,37 +24,38 @@ export function SettingsView() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-telegram-bg overflow-y-auto">
+    <div className="flex-1 flex flex-col bg-background overflow-y-auto">
       {/* Header */}
-      <div className="h-14 flex items-center gap-3 px-4 border-b border-telegram-border bg-telegram-sidebar shrink-0">
+      <div className="h-14 flex items-center gap-3 px-4 border-b border-border bg-popover shrink-0">
         <button
           onClick={() => setShowSettings(false)}
-          className="p-1.5 rounded-md hover:bg-telegram-hover text-telegram-text-secondary hover:text-telegram-text transition-colors"
+          aria-label="Go back"
+          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-lg font-medium text-telegram-text">Settings</h1>
+        <h1 className="text-lg font-medium text-foreground">Settings</h1>
       </div>
 
       <div className="max-w-xl mx-auto w-full p-6 space-y-8">
         {/* Profile Section */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-telegram-accent uppercase tracking-wider">Profile</h2>
-          <div className="flex items-center gap-4 p-4 rounded-lg bg-telegram-sidebar">
-            <div className="w-16 h-16 rounded-full bg-telegram-accent/20 flex items-center justify-center text-2xl font-semibold text-telegram-accent shrink-0">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Profile</h2>
+          <div className="flex items-center gap-4 p-4 rounded-lg bg-popover">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-semibold text-primary shrink-0">
               {currentUser?.firstName?.[0] ?? '?'}
             </div>
             <div className="min-w-0">
-              <p className="text-telegram-text font-medium truncate">
+              <p className="text-foreground font-medium truncate">
                 {currentUser ? `${currentUser.firstName} ${currentUser.lastName}`.trim() : 'Unknown'}
               </p>
               {currentUser?.username && (
-                <p className="text-telegram-text-secondary text-sm truncate">@{currentUser.username}</p>
+                <p className="text-muted-foreground text-sm truncate">@{currentUser.username}</p>
               )}
               {currentUser?.phone && (
-                <p className="text-telegram-text-secondary text-sm">+{currentUser.phone}</p>
+                <p className="text-muted-foreground text-sm">+{currentUser.phone}</p>
               )}
             </div>
           </div>
@@ -62,33 +63,33 @@ export function SettingsView() {
 
         {/* Accounts Section */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-telegram-accent uppercase tracking-wider">Accounts</h2>
-          <div className="p-4 rounded-lg bg-telegram-sidebar space-y-2">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Accounts</h2>
+          <div className="p-4 rounded-lg bg-popover space-y-2">
             {accounts.map((account: TelegramAccount) => (
               <div key={account.id} className="flex items-center gap-3 py-2">
                 {account.avatar ? (
                   <img src={account.avatar} alt={account.firstName} className="w-10 h-10 rounded-full object-cover shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-telegram-accent/20 flex items-center justify-center text-sm font-semibold text-telegram-accent shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
                     {account.firstName[0] ?? '?'}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-telegram-text text-sm font-medium truncate">
+                  <p className="text-foreground text-sm font-medium truncate">
                     {account.firstName}
                     {account.id === activeAccountId && (
-                      <span className="ml-1.5 text-telegram-accent text-xs font-normal">(active)</span>
+                      <span className="ml-1.5 text-primary text-xs font-normal">(active)</span>
                     )}
                   </p>
                   {account.username && (
-                    <p className="text-telegram-text-secondary text-xs truncate">@{account.username}</p>
+                    <p className="text-muted-foreground text-xs truncate">@{account.username}</p>
                   )}
                 </div>
                 {accounts.length > 1 && (
                   <button
                     onClick={() => void removeAccount(account.id)}
-                    className="p-1.5 text-telegram-text-secondary hover:text-red-400 transition-colors shrink-0"
-                    title="Remove account"
+                    aria-label={`Remove account ${account.firstName}`}
+                    className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -99,7 +100,7 @@ export function SettingsView() {
             ))}
             <button
               onClick={() => { setShowSettings(false); void startAddAccount() }}
-              className="flex items-center gap-2 w-full px-2 py-2 text-sm text-telegram-accent hover:bg-telegram-hover rounded-md transition-colors"
+              className="flex items-center gap-2 w-full px-2 py-2 text-sm text-primary hover:bg-accent rounded-md transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -111,17 +112,17 @@ export function SettingsView() {
 
         {/* Appearance */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-telegram-accent uppercase tracking-wider">Appearance</h2>
-          <div className="p-4 rounded-lg bg-telegram-sidebar space-y-3">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Appearance</h2>
+          <div className="p-4 rounded-lg bg-popover space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-telegram-text text-sm">Theme</span>
-              <div className="flex rounded-md overflow-hidden border border-telegram-border">
+              <span className="text-foreground text-sm">Theme</span>
+              <div className="flex rounded-md overflow-hidden border border-border">
                 <button
                   onClick={() => setTheme('dark')}
                   className={`px-4 py-1.5 text-sm transition-colors ${
                     theme === 'dark'
-                      ? 'bg-telegram-accent text-white'
-                      : 'bg-telegram-input text-telegram-text-secondary hover:text-telegram-text'
+                      ? 'bg-primary text-white'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Dark
@@ -130,8 +131,8 @@ export function SettingsView() {
                   onClick={() => setTheme('light')}
                   className={`px-4 py-1.5 text-sm transition-colors ${
                     theme === 'light'
-                      ? 'bg-telegram-accent text-white'
-                      : 'bg-telegram-input text-telegram-text-secondary hover:text-telegram-text'
+                      ? 'bg-primary text-white'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Light
@@ -143,32 +144,33 @@ export function SettingsView() {
 
         {/* API Keys */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-telegram-accent uppercase tracking-wider">API Keys</h2>
-          <div className="p-4 rounded-lg bg-telegram-sidebar space-y-4">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">API Keys</h2>
+          <div className="p-4 rounded-lg bg-popover space-y-4">
             <div className="space-y-1.5">
-              <label className="text-telegram-text text-sm block">Bitrix24 Webhook URL</label>
+              <label className="text-foreground text-sm block">Bitrix24 Webhook URL</label>
               <input
                 type="url"
                 value={bitrixUrl}
                 onChange={(e) => setBitrixUrl(e.target.value)}
                 placeholder="https://your-domain.bitrix24.ru/rest/..."
-                className="w-full px-3 py-2 bg-telegram-input text-telegram-text text-sm rounded-md border border-telegram-border focus:outline-none focus:ring-1 focus:ring-telegram-accent placeholder:text-telegram-text-secondary"
+                className="w-full px-3 py-2 bg-muted text-foreground text-sm rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-telegram-text text-sm block">Claude API Key</label>
+              <label className="text-foreground text-sm block">Claude API Key</label>
               <div className="relative">
                 <input
                   type={showClaudeKey ? 'text' : 'password'}
                   value={claudeKey}
                   onChange={(e) => setClaudeKey(e.target.value)}
                   placeholder="sk-ant-..."
-                  className="w-full px-3 py-2 pr-10 bg-telegram-input text-telegram-text text-sm rounded-md border border-telegram-border focus:outline-none focus:ring-1 focus:ring-telegram-accent placeholder:text-telegram-text-secondary"
+                  className="w-full px-3 py-2 pr-10 bg-muted text-foreground text-sm rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                 />
                 <button
                   type="button"
                   onClick={() => setShowClaudeKey((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-telegram-text-secondary hover:text-telegram-text p-1"
+                  aria-label={showClaudeKey ? 'Hide API key' : 'Show API key'}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
                 >
                   {showClaudeKey ? (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +187,7 @@ export function SettingsView() {
             </div>
             <button
               onClick={handleSaveKeys}
-              className="px-4 py-2 bg-telegram-accent text-white text-sm rounded-md hover:bg-telegram-accent/80 transition-colors"
+              className="px-4 py-2 bg-primary text-white text-sm rounded-md hover:bg-primary/80 transition-colors"
             >
               {saved ? 'Saved!' : 'Save'}
             </button>
@@ -194,20 +196,20 @@ export function SettingsView() {
 
         {/* About */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-telegram-accent uppercase tracking-wider">About</h2>
-          <div className="p-4 rounded-lg bg-telegram-sidebar space-y-3">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">About</h2>
+          <div className="p-4 rounded-lg bg-popover space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-telegram-text-secondary">App</span>
-              <span className="text-telegram-text">Telegram CRM Client</span>
+              <span className="text-muted-foreground">App</span>
+              <span className="text-foreground">Telegram CRM Client</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-telegram-text-secondary">Version</span>
-              <span className="text-telegram-text">0.1.0</span>
+              <span className="text-muted-foreground">Version</span>
+              <span className="text-foreground">0.1.0</span>
             </div>
-            <div className="border-t border-telegram-border pt-3 mt-3">
+            <div className="border-t border-border pt-3 mt-3">
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-2 text-red-400 text-sm rounded-md border border-red-400/30 hover:bg-red-400/10 transition-colors"
+                className="w-full px-4 py-2 text-destructive text-sm rounded-md border border-destructive/30 hover:bg-destructive/10 transition-colors"
               >
                 Log Out
               </button>
