@@ -19,3 +19,5 @@ blob-report/
 *.db-wal
 .vite/
 *.tsbuildinfo
+*.png
+.playwright-mcp/
