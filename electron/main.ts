@@ -6,6 +6,11 @@ import { setupClaudeIPC } from './ipc/claude'
 import { setupDatabaseIPC } from './ipc/database'
 import { AppDatabase } from './database/index'
 
+// Enable CDP remote debugging in dev mode so Playwright MCP can connect to Electron
+if (process.env.VITE_DEV_SERVER_URL) {
+  app.commandLine.appendSwitch('remote-debugging-port', '9222')
+}
+
 let mainWindow: BrowserWindow | null = null
 let database: AppDatabase | null = null
 
